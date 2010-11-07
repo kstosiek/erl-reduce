@@ -1,0 +1,18 @@
+Implementacja platformy obliczeniowej MapReduce w technologii Erlang/OTP.
+
+Karol Stosiek,
+Piotr Polesiuk
+
+Dokumentacja projektu:
+https://docs.google.com/document/d/1_392Y5uZgveIoo6gCSnYQMIQHn9rD0OIqJIYt08ozbU/edit?hl=en
+
+Reguły stylu:
+http://www.erlang.se/doc/programming_rules.shtml
+
+Struktura projektu:
+- ebin/
+Pliki obiektowe projektu powstałe w wyniku kompilacji.
+- src/
+Pliki źródłowe projektu.
+- tests/
+Pliki z testami jednostkowymi.

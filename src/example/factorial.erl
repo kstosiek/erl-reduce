@@ -1,7 +1,7 @@
 %% Author: karol
 %% Created: 04-11-2010
 %% Description: TODO: Add description to example
--module(example).
+-module(factorial).
 
 %%
 %% Include files
