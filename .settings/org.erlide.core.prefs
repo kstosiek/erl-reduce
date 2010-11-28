@@ -1,5 +1,5 @@
-#Sun Nov 07 14:37:21 CET 2010
-backend_version=R13B
+#Sun Nov 28 22:01:02 CET 2010
+backend_version=R14B
 compiler/allOptions=
 compiler/debug_info=false
 compiler/encrypt_debug_info=false
@@ -15,4 +15,4 @@ eclipse.preferences.version=1
 external_includes=
 external_modules=
 output_dir=ebin
-source_dirs=src;src/example;
+source_dirs=src;tests/example;tests;src/example;

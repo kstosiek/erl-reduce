@@ -1,21 +1,17 @@
-%% Author: karol
+%% Author: Karol Stosiek (karol.stosiek@gmail.com)
 %% Created: 07-11-2010
-%% Description: TODO: Add description to main
+%% Description: MapReduce program entry.
 -module(main).
-
-%%
-%% Include files
-%%
 
 %%
 %% Exported Functions
 %%
+-export([eval/1]).
 
-%%
-%% API Functions
-%%
+%% @doc Runs MapReduce on given input. Definitions of map/1 and reduce/1
+%%     operations are available in map and reduce modules, respectively.
+%% @spec ([{K1,V1}]) -> [{K3,V3}].
+eval(Input) ->
+	reduce:reduce(map:map(Input)).
 
-%%
-%% Local Functions
-%%
-
+	
