@@ -1,4 +1,4 @@
-#Sun Nov 28 22:01:02 CET 2010
+#Fri Dec 10 14:35:54 CET 2010
 backend_version=R14B
 compiler/allOptions=
 compiler/debug_info=false
@@ -15,4 +15,4 @@ eclipse.preferences.version=1
 external_includes=
 external_modules=
 output_dir=ebin
-source_dirs=src;tests/example;tests;src/example;
+source_dirs=tests/examples/indexing;tests;src/examples/indexing;src;src/example;
