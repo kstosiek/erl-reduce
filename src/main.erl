@@ -13,4 +13,4 @@
 eval(Input) ->
 	reduce:reduce(map:map(Input)).
 
-	
+

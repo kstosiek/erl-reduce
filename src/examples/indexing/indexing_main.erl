@@ -29,9 +29,9 @@ run(FileName) ->
 			indexing_reduce:reduce(
 			  indexing_map:map(
 				get_file_contents_as_lines_with_line_no(IoDevice)));
-	    {error, Reason} ->
+		{error, Reason} ->
 			throw({error, Reason})
-end.
+	end.
 
 %%
 %% Local Functions
@@ -43,17 +43,17 @@ end.
 %% @throws {error, atom()} Thrown on I/O errors.
 append_file_contents_with_line_no(IoDevice, CurrentLineNumber, Accumulator) ->
 	case io:get_line(IoDevice, "") of
-        eof  ->
+		eof  ->
 			file:close(IoDevice),
 			Accumulator;
-
+		
 		{error, Reason} ->
 			file:close(IoDevice),
 			throw({error, Reason});
-
-        Line ->
-            NewLineNumber = CurrentLineNumber + 1,
-            NewAccumulator = [{Line, NewLineNumber}|Accumulator],
+		
+		Line ->
+			NewLineNumber = CurrentLineNumber + 1,
+			NewAccumulator = [{Line, NewLineNumber}|Accumulator],
 			append_file_contents_with_line_no(IoDevice, NewLineNumber,
 											  NewAccumulator)
 	end.
@@ -68,4 +68,4 @@ get_file_contents_as_lines_with_line_no(IoDevice) ->
 	CurrentLineNumber = 0,
 	Accumulator = [],
 	append_file_contents_with_line_no(IoDevice, CurrentLineNumber, Accumulator).
-	
+

@@ -21,4 +21,4 @@ reduce (WordsWithLineNumbers) ->
 		end,
 	WordIndex = lists:foldl(AddWordToIndex, dict:new(), WordsWithLineNumbers),
 	lists:sort(dict:to_list(WordIndex)).
-	
+
