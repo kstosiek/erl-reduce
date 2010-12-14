@@ -39,15 +39,36 @@ slice_by_length(XS, N) ->
     slice_aux(XS, N).
 
 
+%%  @docs Runs one mapping process.
+%%  @spec Data - data it works on.
+run_one_mapper(Data) ->
+    7.   %% PID
+
+
+%% returns list of PIDs.
+spawn_all([]) -> [];
+spawn_all([H|T]) ->
+    lists:append([run_one_mapper(H)], spawn_all(T)).
+
 %%  @doc TODO
 %%  @ spec Input - TODO
 %%         Mapfun - TODO
-%%         M - well-known constant. Number of mapping processors.
+%%         M - well-known constant. Number of mapping processses.
+map([], _, _) -> [];
+
 map(Input, Mapfun, M) ->
+    Parts = slice_by_length(Input, M),
+    Pids = spawn_all(Parts),
     [].
 
 
-run_tests() ->
+%%
+main(_) ->
+    test(fun()->test_slice_by_length() end, "test_slice_by_length"),
+    test(fun()->test_map_num_to_square() end, "test_map_num_to_square"),
+    io:format("~n").
+
+test_slice_by_length() ->
     [
      slice_by_length([], 3) == [[]],
      slice_by_length([1,2], 3) == [[1,2]],
@@ -55,13 +76,23 @@ run_tests() ->
      slice_by_length([1,2,3,4,5,6,7], 3) == [[1,2,3], [4,5,6], [7]]
     ].
 
-main(_) ->
-    X = run_tests(),
-    case lists:all(fun(B)->B==true end, X) of
-        true -> io:fwrite("tests ok~n");
-        _    -> io:fwrite("FAILURE: tests ~w~n", [X])
+test_map_num_to_square() ->
+    SqrFun = fun(A) -> A*A end,
+
+    [
+     map(lists:seq(1, 1), SqrFun, 1) == [1],
+     map(lists:seq(1, 2), SqrFun, 1) == [1,4],
+     map(lists:seq(1, 2), SqrFun, 2) == [1,4]
+    ].
+
+test(TestFunction, TestName) ->
+    io:fwrite("Testing ~s ", [TestName]),
+    Result = TestFunction(),
+    case lists:all(fun(P)->P end, Result) of
+        true -> io:fwrite("\t\t\t\t OK~n");
+        _    -> io:fwrite("\t\t\t\t FAILURE ~w~n", [Result])
     end,
-    io:format("~n").
+    ok.
 
 
 %%  @doc Maps given input into intermediate data.
