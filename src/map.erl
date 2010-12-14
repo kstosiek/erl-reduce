@@ -10,14 +10,63 @@
 %% Include files
 %%
 
+%%  @doc Context passed to map function
+%%  @spec m - num of mapping processors
+%%        mapfun - mapping function
+%% -record(map_context, {m, mapfun}).
+
 %%
 %% Exported Functions
 %%
--export([map/1]).
+-export([map/1, map/3, main/1]).
+
+
+%%
+slice_aux([],_) -> 
+    [];
+
+slice_aux(XS, N) when length(XS) < N -> 
+    [XS];
+
+slice_aux(XS, N) ->
+    {A, B} = lists:split(N, XS),
+    lists:append([A], slice_aux(B, N)).
+
+%%
+slice_by_length([], _) -> [[]];
+
+slice_by_length(XS, N) ->
+    slice_aux(XS, N).
+
+
+%%  @doc TODO
+%%  @ spec Input - TODO
+%%         Mapfun - TODO
+%%         M - well-known constant. Number of mapping processors.
+map(Input, Mapfun, M) ->
+    [].
+
+
+run_tests() ->
+    [
+     slice_by_length([], 3) == [[]],
+     slice_by_length([1,2], 3) == [[1,2]],
+     slice_by_length([1,2,3,4,5,6], 3) == [[1,2,3], [4,5,6]],
+     slice_by_length([1,2,3,4,5,6,7], 3) == [[1,2,3], [4,5,6], [7]]
+    ].
+
+main(_) ->
+    X = run_tests(),
+    case lists:all(fun(B)->B==true end, X) of
+        true -> io:fwrite("tests ok~n");
+        _    -> io:fwrite("FAILURE: tests ~w~n", [X])
+    end,
+    io:format("~n").
+
 
 %%  @doc Maps given input into intermediate data.
 %%  @spec ([{K1,V1}]) -> [{K2, V2}]
-
+%% depracated
 map(Input) ->
 	lists:flatten(local_map(Input)).
 
