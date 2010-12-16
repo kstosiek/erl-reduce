@@ -18,7 +18,8 @@
 %%
 %% Exported Functions
 %%
--export([map/1, map/3, main/1]).
+-export([map/1, map/3, main/1, 
+         test_slice_by_length/0, test_map_num_to_square/0]).
 
 
 %%
@@ -64,9 +65,11 @@ map(Input, Mapfun, M) ->
 
 %%
 main(_) ->
-    test(fun()->test_slice_by_length() end, "test_slice_by_length"),
-    test(fun()->test_map_num_to_square() end, "test_map_num_to_square"),
-    io:format("~n").
+    %% test(fun()->test_slice_by_length() end, "test_slice_by_length"),
+    test(fun map:test_slice_by_length/0, "test_slice_by_length"),
+    test(fun map:test_map_num_to_square/0, "test_map_num_to_square"),
+    io:format("~n"),
+    ok.
 
 test_slice_by_length() ->
     [
