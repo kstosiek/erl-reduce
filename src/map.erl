@@ -13,67 +13,7 @@
 %%
 %% Exported Functions
 %%
--export([map/1, supervisor/3, main/1, 
-         test_slice_by_length/0]).
-
-
-%% Aux function for slice_by_length
-slice_aux([], _) -> [];
-slice_aux(XS, N) when length(XS) < N -> [XS];
-slice_aux(XS, N) ->
-    {A, B} = lists:split(N, XS),
-    lists:append([A], slice_aux(B, N)).
-
-%% Slices list of elements into list of N-lists of elements. N-list is a list of length N.
-%% At most one element of result can be shorter than N.
-slice_by_length([], _) -> [[]];
-slice_by_length(XS, N) ->
-    slice_aux(XS, N).
-
-
-%%  @doc TODO
-%%  @ spec Input - List of input elements, like [1, 2, 3, 4, 5]
-%%         Mapfun - TODO
-%%         M - well-known constant. Number of mapping processes.
-supervisor([], _, _) -> [];
-
-supervisor(Input, _, M) ->
-    Parts = slice_by_length(Input, length(Input) div M),
-    dist:start(Parts),
-    ok.
-
-
-%% Start point (required when using escript command).
-main(_) ->
-    test(fun map:test_slice_by_length/0, "test_slice_by_length"),
-    io:format("~n"),
-    %
-    M = conf:max_M(),
-    Input = lists:seq(1, 10), 
-    MapFunction = fun() -> ok end,    % not used now
-    supervisor(Input, MapFunction, M),
-    ok.
-
-test_slice_by_length() ->
-    [
-     slice_by_length([], 3) == [[]],
-     slice_by_length([1,2], 3) == [[1,2]],
-     slice_by_length([1,2,3,4,5,6], 3) == [[1,2,3], [4,5,6]],
-     slice_by_length([1,2,3,4,5,6,7], 3) == [[1,2,3], [4,5,6], [7]]
-    ].
-
-
-%%  @ doc Testing function. 
-%%  @ spec TestFunction -- function to be tested
-%%         TestName -- name of the test (displayed while testing)
-test(TestFunction, TestName) ->
-    io:fwrite("Testing ~s ", [TestName]),
-    Result = TestFunction(),
-    case lists:all(fun(P)->P end, Result) of
-        true -> io:fwrite("\t\t\t\t OK~n");
-        _    -> io:fwrite("\t\t\t\t FAILURE ~w~n", [Result])
-    end,
-    ok.
+-export([map/1]).
 
 
 %%  @doc Maps given input into intermediate data.
