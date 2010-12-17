@@ -7,34 +7,55 @@ slaves() ->
     %% ['bb@localhost'].
 
 
-%% Runs one slave
+%% Spawns a slave
 spawn_slave(SlaveName, Data) ->
     io:format("Spawning slave: ~s~n", [SlaveName]),
     Pid = spawn(SlaveName,dist, client, []),
     Pid ! {self(), {'taskdata', Data}},
+    ok.
+
+
+%% Argument means how many messages received. Temporary solution.
+receive_messages(2) ->
+    ok;
+
+receive_messages(N) ->
     receive
         Msg ->
-            io:format('~w~n',[Msg])
-    end.
+            io:format('~w~n',[Msg]),
+            receive_messages(N + 1)
+    end,
+    ok.
+
+
+%% Spawns slaves and waits for message.
+spawn_slaves(SlavesWithData) ->
+    Spawner = fun({S,D}) -> spawn_slave(S,D) end,
+    io:format('~w~n', [SlavesWithData]),
+    lists:foreach(Spawner, SlavesWithData),
+    ok.
 
 
 %% Supervisor starts here
 start(Data) -> 
     % We need to assure lists are the same length (zip's requirement)
     Slaves = slaves(),
-    io:format("START Data: ~w~n",[Data]),
-    io:format("~B ~B~n", [length(Slaves), length(lists:nth(1, Data))]),
+    io:format("START Data: ~w~n", [Data]),
+    io:format("Lengths (will take smaller): ~B ~B~n", [length(Slaves), length(Data)]),
     MinLength = erlang:min(length(Slaves), length(lists:nth(1, Data))),
     CutSlaves = lists:sublist(Slaves, MinLength),
     CutData = lists:sublist(Data, MinLength),
     %
     SlavesWithData = lists:zip(CutSlaves, CutData),
-    lists:foreach(fun ({A,B}) -> spawn_slave(A,B) end, SlavesWithData),
+    spawn_slaves(SlavesWithData),
+    receive_messages(0),
     ok.
 
 
 %% Transforms list of elements info list of pairs.
 mapping(XS) ->
+    SleepTime = erlang:max(500, random:uniform(1000)),
+    timer:sleep(SleepTime),
     lists:map(fun(X) -> {X, X*X} end, XS).
 
 
@@ -45,5 +66,6 @@ client() ->
             First = lists:last(lists:reverse(XS)),
             Last = lists:last(XS),
             io:format(user, "Received data: ~w -- ~w~n", [First, Last]),
-            Pid ! mapping(XS)
+            Pid ! mapping(XS),
+            io:format(user, "Result was sent~n", [])
     end.
