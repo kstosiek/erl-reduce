@@ -12,55 +12,55 @@
 %%
 
 map_splitting_words_by_space_test() ->
-	TestData = [{"hello kitty", 1}],
-	ExpectedResult = [{"hello", 1}, {"kitty",1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"hello kitty", 1}],
+    ExpectedResult = [{"hello", 1}, {"kitty",1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).
 
 map_splitting_words_by_comma_test() ->
-	TestData = [{"hello,kitty", 1}],
-	ExpectedResult = [{"hello", 1}, {"kitty",1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"hello,kitty", 1}],
+    ExpectedResult = [{"hello", 1}, {"kitty",1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).
 
 map_splitting_words_by_colon_test() ->
-	TestData = [{"hello:kitty", 1}],
-	ExpectedResult = [{"hello", 1}, {"kitty",1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"hello:kitty", 1}],
+    ExpectedResult = [{"hello", 1}, {"kitty",1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).
 
 map_splitting_words_by_semicolon_test() ->
-	TestData = [{"hello;kitty", 1}],
-	ExpectedResult = [{"hello", 1}, {"kitty",1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"hello;kitty", 1}],
+    ExpectedResult = [{"hello", 1}, {"kitty",1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).
 
 map_splitting_words_by_exclamation_mark_test() ->
-	TestData = [{"hello!kitty", 1}],
-	ExpectedResult = [{"hello", 1}, {"kitty",1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"hello!kitty", 1}],
+    ExpectedResult = [{"hello", 1}, {"kitty",1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).
 
 map_splitting_words_by_question_mark_test() ->
-	TestData = [{"hello?kitty", 1}],
-	ExpectedResult = [{"hello", 1}, {"kitty",1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"hello?kitty", 1}],
+    ExpectedResult = [{"hello", 1}, {"kitty",1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).
 
 map_not_splitting_words_by_apostrophe_test() ->
-	TestData = [{"hello'kitty", 1}],
-	ExpectedResult = [{"hello'kitty", 1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"hello'kitty", 1}],
+    ExpectedResult = [{"hello'kitty", 1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).
 
 map_does_not_produce_empty_words_test() ->
-	TestData = [{"hello!? kitty?", 1}],
-	ExpectedResult = [{"hello", 1}, {"kitty",1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"hello!? kitty?", 1}],
+    ExpectedResult = [{"hello", 1}, {"kitty",1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).
 
 map_converts_words_to_lower_case_test() ->
-	TestData = [{"Hello kitty?", 1}],
-	ExpectedResult = [{"hello", 1}, {"kitty",1}],
-	ActualResult = indexing_map:map(TestData),
-	?assertEqual(ExpectedResult, ActualResult).
+    TestData = [{"Hello kitty?", 1}],
+    ExpectedResult = [{"hello", 1}, {"kitty",1}],
+    ActualResult = indexing_map:map(TestData),
+    ?assertEqual(ExpectedResult, ActualResult).

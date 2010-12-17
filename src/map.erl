@@ -13,5 +13,5 @@
 %% @throws not_implemented
 
 map(Input) ->
-	throw(not_implemented).
+    throw(not_implemented).
 

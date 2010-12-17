@@ -24,14 +24,14 @@
 %% @spec (string()) -> [{string(), [int()]}]
 %% @throws {error, atom()} Thrown on I/O errors.
 run(FileName) ->
-	case file:open(FileName, read) of
-		{ok, IoDevice} -> 
-			indexing_reduce:reduce(
-			  indexing_map:map(
-				get_file_contents_as_lines_with_line_no(IoDevice)));
-		{error, Reason} ->
-			throw({error, Reason})
-	end.
+    case file:open(FileName, read) of
+        {ok, IoDevice} -> 
+            indexing_reduce:reduce(
+              indexing_map:map(
+                get_file_contents_as_lines_with_line_no(IoDevice)));
+        {error, Reason} ->
+            throw({error, Reason})
+    end.
 
 %%
 %% Local Functions
@@ -42,21 +42,21 @@ run(FileName) ->
 %% @spec (io_device(), int(), [{string(), int()}]) -> [{string(), int()}]
 %% @throws {error, atom()} Thrown on I/O errors.
 append_file_contents_with_line_no(IoDevice, CurrentLineNumber, Accumulator) ->
-	case io:get_line(IoDevice, "") of
-		eof  ->
-			file:close(IoDevice),
-			Accumulator;
-		
-		{error, Reason} ->
-			file:close(IoDevice),
-			throw({error, Reason});
-		
-		Line ->
-			NewLineNumber = CurrentLineNumber + 1,
-			NewAccumulator = [{Line, NewLineNumber}|Accumulator],
-			append_file_contents_with_line_no(IoDevice, NewLineNumber,
-											  NewAccumulator)
-	end.
+    case io:get_line(IoDevice, "") of
+        eof  ->
+            file:close(IoDevice),
+            Accumulator;
+        
+        {error, Reason} ->
+            file:close(IoDevice),
+            throw({error, Reason});
+        
+        Line ->
+            NewLineNumber = CurrentLineNumber + 1,
+            NewAccumulator = [{Line, NewLineNumber}|Accumulator],
+            append_file_contents_with_line_no(IoDevice, NewLineNumber,
+                                              NewAccumulator)
+    end.
 
 
 %% @doc Gets contents of given (opened) file and annotates each line with it's
@@ -65,7 +65,7 @@ append_file_contents_with_line_no(IoDevice, CurrentLineNumber, Accumulator) ->
 %% @spec (io_device() -> [{string(), int()}]
 %% @throws {error, atom()} thrown on I/O errors.
 get_file_contents_as_lines_with_line_no(IoDevice) ->
-	CurrentLineNumber = 0,
-	Accumulator = [],
-	append_file_contents_with_line_no(IoDevice, CurrentLineNumber, Accumulator).
+    CurrentLineNumber = 0,
+    Accumulator = [],
+    append_file_contents_with_line_no(IoDevice, CurrentLineNumber, Accumulator).
 

@@ -13,4 +13,4 @@
 %% @spec ([{K2,V2}]) -> [{K3, V3}]
 %% @throws not_implemented
 reduce (IntermediateData) -> 
-	throw(not_implemented).
+    throw(not_implemented).

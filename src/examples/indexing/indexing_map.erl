@@ -16,12 +16,12 @@
 %%      and line numbers of which these words occur on.
 %%  @spec ([{K1,V1}]) -> [{K2, V2}]
 map(Input) ->
-	SplitLineIntoWordsWithLineNumber =
-		fun ({Line, LineNumber}) ->
-				 WordsInLine = re:split(Line, "[^A-Za-z'-]+",
-										[{return, list}, trim]),
-				 SingleWordToLowerWordAndLineNumber =
-					 fun (Word) -> {string:to_lower(Word), LineNumber} end,
-				 lists:map(SingleWordToLowerWordAndLineNumber, WordsInLine)
-		end,
-	lists:flatmap(SplitLineIntoWordsWithLineNumber, Input).
+    SplitLineIntoWordsWithLineNumber =
+        fun ({Line, LineNumber}) ->
+                 WordsInLine = re:split(Line, "[^A-Za-z'-]+",
+                                        [{return, list}, trim]),
+                 SingleWordToLowerWordAndLineNumber =
+                     fun (Word) -> {string:to_lower(Word), LineNumber} end,
+                 lists:map(SingleWordToLowerWordAndLineNumber, WordsInLine)
+        end,
+    lists:flatmap(SplitLineIntoWordsWithLineNumber, Input).
