@@ -15,7 +15,6 @@
 %%
 -export([map/1]).
 
-
 %%  @doc Maps given input into intermediate data.
 %%  @spec ([{K1,V1}]) -> [{K2, V2}]
 %% depracated?
