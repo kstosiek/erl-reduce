@@ -1,21 +1,21 @@
 -module(dist).
 -export([start/1, client/0, mapping/1]).
 
+
 %% Returns list of slave-nodes (mapping processes?)
 slaves() ->
-    ['bb@localhost', 'cc@localhost'].
-    %% ['bb@localhost'].
+    lists:sublist(['bb@localhost', 'cc@localhost'], conf:max_M()).
 
 
 %% Spawns a slave
 spawn_slave(SlaveName, Data) ->
     io:format("Spawning slave: ~s~n", [SlaveName]),
-    Pid = spawn(SlaveName,dist, client, []),
-    Pid ! {self(), {'taskdata', Data}},
+    %% Pid = spawn(SlaveName,dist, client, []),
+    %% Pid ! {self(), {'taskdata', Data}},
     ok.
 
 
-%% Argument means how many messages received. Temporary solution.
+%% Argument means how many messages received.
 receive_messages(2) ->
     ok;
 
@@ -38,13 +38,13 @@ spawn_slaves(SlavesWithData) ->
 
 %% Supervisor starts here
 start(Data) -> 
-    % We need to assure lists are the same length (zip's requirement)
+    % We need to assure that lists are the same length (zip's requirement)
     Slaves = slaves(),
     io:format("START Data: ~w~n", [Data]),
     io:format("Lengths (will take smaller): ~B ~B~n", [length(Slaves), length(Data)]),
-    MinLength = erlang:min(length(Slaves), length(lists:nth(1, Data))),
-    CutSlaves = lists:sublist(Slaves, MinLength),
-    CutData = lists:sublist(Data, MinLength),
+    CommonLength = erlang:min(length(Slaves), length(lists:nth(1, Data))),
+    CutSlaves = lists:sublist(Slaves, CommonLength),
+    CutData = lists:sublist(Data, CommonLength),
     %
     SlavesWithData = lists:zip(CutSlaves, CutData),
     spawn_slaves(SlavesWithData),
@@ -54,7 +54,7 @@ start(Data) ->
 
 %% Transforms list of elements info list of pairs.
 mapping(XS) ->
-    SleepTime = erlang:max(500, random:uniform(1000)),
+    SleepTime = erlang:max(conf:min_map_wait(), random:uniform(conf:max_map_wait())),
     timer:sleep(SleepTime),
     lists:map(fun(X) -> {X, X*X} end, XS).
 

@@ -13,24 +13,20 @@
 %%
 %% Exported Functions
 %%
--export([map/1, map/3, main/1, 
+-export([map/1, supervisor/3, main/1, 
          test_slice_by_length/0]).
 
 
-%%
-slice_aux([],_) -> 
-    [];
-
-slice_aux(XS, N) when length(XS) < N -> 
-    [XS];
-
+%% Aux function for slice_by_length
+slice_aux([], _) -> [];
+slice_aux(XS, N) when length(XS) < N -> [XS];
 slice_aux(XS, N) ->
     {A, B} = lists:split(N, XS),
     lists:append([A], slice_aux(B, N)).
 
 %% Slices list of elements into list of N-lists of elements. N-list is a list of length N.
+%% At most one element of result can be shorter than N.
 slice_by_length([], _) -> [[]];
-
 slice_by_length(XS, N) ->
     slice_aux(XS, N).
 
@@ -39,9 +35,9 @@ slice_by_length(XS, N) ->
 %%  @ spec Input - List of input elements, like [1, 2, 3, 4, 5]
 %%         Mapfun - TODO
 %%         M - well-known constant. Number of mapping processes.
-map([], _, _) -> [];
+supervisor([], _, _) -> [];
 
-map(Input, _, M) ->
+supervisor(Input, _, M) ->
     Parts = slice_by_length(Input, length(Input) div M),
     dist:start(Parts),
     ok.
@@ -52,10 +48,10 @@ main(_) ->
     test(fun map:test_slice_by_length/0, "test_slice_by_length"),
     io:format("~n"),
     %
-    M = 2,
-    Input = lists:seq(1,10), 
+    M = conf:max_M(),
+    Input = lists:seq(1, 10), 
     MapFunction = fun() -> ok end,    % not used now
-    map(Input, MapFunction, M),
+    supervisor(Input, MapFunction, M),
     ok.
 
 test_slice_by_length() ->
