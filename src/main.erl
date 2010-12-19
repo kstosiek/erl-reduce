@@ -11,6 +11,6 @@
 %% @doc Runs MapReduce on given input.
 %% @spec ([{K1,V1}]) -> [{K3,V3}].
 eval(Input) ->
-	reduce:reduce(map:map(Input)).
-
-
+    Result = reduce:reduce(map:map(Input)),
+    io:format("Final result: ~w~n", [Result]),
+    ok.

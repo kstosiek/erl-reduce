@@ -14,11 +14,11 @@ mapping(XS) ->
 %% Code executed by slave node.
 run() ->
     receive
-        {Pid, {'mapdata', XS}} ->
+        {Pid, {mapdata, XS}} ->
             %% First = lists:last(lists:reverse(XS)),
             %% Last = lists:last(XS),
             %% io:format(user, "Received data: ~w -- ~w~n", [First, Last]),
-            Pid ! mapping(XS),        % Send back to master
-            io:format(user, "Result was sent back~n", [])
+            Result = mapping(XS),
+            Pid ! {mapresult, Result},        % Send back to master
+            io:format(user, "Result was sent back: ~w~n", [Result])
     end.
-
