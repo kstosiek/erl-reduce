@@ -1,9 +1,6 @@
 %% Author: Karol Stosiek (karol.stosiek@gmail.com)
 %% Created: 28-11-2010
-%% Description: Module containing example implementation of reduce operation.
-%%     Distributed Grep: The map function emits a line if it matches a given
-%%     pattern. The reduce function is an identity function that just copies
-%%     the supplied intermediate data to the output.
+%% Description: Module with stub reduce/1 function.
 -module(reduce).
 
 %%
@@ -14,5 +11,6 @@
 %% @doc Reduces intermediate data to final data. In current implementation
 %%     it is an identity function.
 %% @spec ([{K2,V2}]) -> [{K3, V3}]
+%% @throws not_implemented
 reduce (IntermediateData) -> 
-	IntermediateData.
+    throw(not_implemented).
