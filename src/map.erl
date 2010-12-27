@@ -9,9 +9,9 @@
 -export([map/1]).
 
 %% @doc Maps given input into intermediate data.
-%% @spec ([{K1,V1}]) -> [{K2, V2}]
+%% @spec (MapData) -> IntermediateData where
+%%     MapData = [{K1,V1}],
+%%     IntermediateData = [{K2,V2}]
 %% @throws not_implemented
-
-map(Input) ->
-    master:main(Input).
-    %% throw(not_implemented).
+map(_) ->
+    throw(not_implemented).

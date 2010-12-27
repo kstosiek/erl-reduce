@@ -1,115 +1,117 @@
+%% Author: Marcin Milewski (mmilewski@gmail.com)
+%% Created: 21-11-2010
+%% Description: Coordinates the map/reduce computation: feeds workers with data,
+%%     takes care of dying workers and returns collected data to the user.
 -module(master).
--export([main/0, main/1,
-         test_slice_by_length/0]).
 
-
-%% Aux function for slice_by_length
-slice_aux([], _) -> [];
-slice_aux(XS, N) when length(XS) < N -> [XS];
-slice_aux(XS, N) ->
-    {A, B} = lists:split(N, XS),
-    lists:append([A], slice_aux(B, N)).
-
-%% Slices list of elements into list of N-lists of elements. N-list is a list of length N.
-%% At most one element of result can be shorter than N.
-slice_by_length([], _) -> [[]];
-slice_by_length(XS, N) ->
-    slice_aux(XS, N).
-
-
-%% Spawns a slave node
-spawn_slave(SlaveName, Data) ->
-    io:format("Spawning slave: ~s~n", [SlaveName]),
-    Pid = spawn(SlaveName, slavenode, run, []),
-    Pid ! {self(), {mapdata, Data}},
-    ok.
-
-
-%% Event loop.
-%% @ spec N - Argument means how many messages received. It is used to stop loop after a number 
-%%            of events.
-%%        MappedData - data collected from mappers.
 %%
-%% Magic constant describes how many messages we will wait for. Used just not to kill
-%% master every single time. 
-%% TODO: replace this with a kind of timeout or something.
+%% Exported Functions.
 %%
-%% MappedData is list of pairs collected from mappers. This is data for reducers.
-handle_events(2, MappedData) -> 
-    MappedData;
+-export([run/3]).
 
-handle_events(N, MappedData) ->
-    receive
-        {mapresult, Result} ->
-            %% io:format('MappedResult: ~w~n', [MappedData]),
-            %% io:format('~w~n', [Result]),
-            handle_events(N + 1, lists:append(MappedData, Result));
-        Something ->
-            io:format('Got something, but I dont know what to do: ~w~n', [Something])
+
+%%
+%% API Functions.
+%%
+
+%% @doc Main master function. Executes map/reduce operation on given input
+%%     with given map and reduce workers. Returns overall result.
+%% @spec (MapWorkerPids, ReduceWorkerPids, InputData) -> FinalResult where
+%%    MapWorderPids = [pid()],
+%%    ReduceWorkerPids = [pid()],
+%%    InputData = [{K1,V1}],
+%%    FinalResult = [{K3,V3}]
+run(MapWorkerPids, ReduceWorkerPids, InputData) ->   
+    MapResult = execute_map_phase(InputData, MapWorkerPids),
+    ReduceResult = execute_reduce_phase(MapResult, ReduceWorkerPids),
+    ReduceResult.
+
+%%
+%% Local Functions.
+%%
+
+%% @doc Partitions given Data into chunks of at most SliceSize and appends
+%%     resulting chunk to the Accumulator. If there is at least ChunkSize
+%%     elements in the given list, then chunk size is ChunkSize; otherwise
+%%     there is at most as many elements in the chunk, as in the given list.
+%%     TODO: make the difference in chunk sizes be at most 1 element.
+%% @spec (Data,SliceSize,Accumulator) -> PartitionedMapData where
+%%     Data = [{K1,V1}],
+%%     SliceSize = int(),
+%%     Accumulator = PartitionedMapData = [Data]
+partition_data_with_accumulator([], _, Accumulator) ->
+    Accumulator;
+
+partition_data_with_accumulator(Data, ChunkSize, Accumulator) ->
+    {Chunk, OtherData} = lists:split(erlang:min(ChunkSize, length(Data)), Data),
+    partition_data_with_accumulator(OtherData, ChunkSize, [Chunk|Accumulator]).
+
+
+%% @doc Parititions data into almost evenly-sized data chunks. Last chunk may
+%%     not be as big as other chunks.
+%%     TODO: make the difference in chunk sizes be at most 1 element.
+%% @spec (Data,Slices) -> [Data] where
+%%     Data = [{K1,V1}],
+%%     Slices = int()
+partition_map_data(Data, Slices) ->
+    partition_data_with_accumulator(Data, round(length(Data) / Slices), []).
+
+%% @doc Collects results from given map workers (MapWorkerPids)
+%%     into CollectedResults (accumulator); RemainingWorkers contains
+%%     information on how many workers left need to return results.
+%%     TODO: use pid set instead of count (RemainingWorkers).
+%% @spec (MapWorkerPids, CollectedResults, RemainingWorkers) ->
+%%     IntermediateData where
+%%     MapWorkerPids = [pid()],
+%%     CollectedResults = [{K2,V2}],
+%%     RemainingWorkers = int()
+collect_map_results_loop(_, CollectedResults, 0) ->
+    CollectedResults;
+
+collect_map_results_loop(MapWorkerPids,
+                         CollectedResults,
+                         RemainingWorkers) ->
+    receive 
+        {MapWorkerPid, {map_result, Result}} ->
+            collect_map_results_loop(MapWorkerPids, [Result|CollectedResults],
+                                     RemainingWorkers - 1)
     end.
 
-%% Spawns slaves.
-spawn_slaves(SlavesWithData) ->
-    Spawner = fun({SlaveName, DataForSlave}) -> spawn_slave(SlaveName, DataForSlave) end,
-    %% io:format('~w~n', [SlavesWithData]),
-    lists:foreach(Spawner, SlavesWithData),
-    ok.
+
+%% @doc Collects mapped data from map workers until all workers return their
+%%    results.
+%% @spec (MapWorkerPids) -> IntermediateData where
+%%     MapWorkerPids = [pid()],
+%%     IntermediateData = [{K2,V2}]
+collect_map_results(MapWorkerPids) ->
+    collect_map_results_loop(MapWorkerPids, [], length(MapWorkerPids)).
 
 
-%%  @doc TODO
-%%  @ spec Input - List of pairs to be mapped.
-%%         M - Number of mapping processes to be used.
-%%  @ returns list of pairs -- data from mappers for reducers.
-master([], _) -> [];
-
-master(Input, M) ->
-    Data = slice_by_length(Input, round(length(Input) / M)),
-    % We need to assure that lists are the same length (zip's requirement)
-    Slaves = conf:slaves_names(),
-    %% io:format("START Data: ~w~n", [Data]),
-    %% io:format("Lengths (will take smaller): ~B ~B~n", [length(Slaves), length(Data)]),
-    CommonLength = erlang:min(length(Slaves), length(Data)),
-    CutSlaves = lists:sublist(Slaves, CommonLength),
-    CutData = lists:sublist(Data, CommonLength),
-    %
-    SlavesWithData = lists:zip(CutSlaves, CutData),
-    spawn_slaves(SlavesWithData),
-    MapResult = handle_events(0, []),     %% list of pairs -- result from mappers
-    MapResult.
-
-
-%% Start point. Use this to run supervisor (aka master).
-main() -> main([{X,X} || X <- lists:seq(1,10)]).   % some data.
-main(Input) ->
-    test(fun master:test_slice_by_length/0, "test_slice_by_length"),
-    io:format("~n"),
-    % Prepare data in order to run master
-    M = conf:max_M(),
-    MapResult = master(Input, M),
-    %% io:format("MapResult: ~w~n", [MapResult]),
-    MapResult.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%  TESTING  %%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Should be moved to test dir, but I don't know how to do it correctly now
-test_slice_by_length() ->
-    [
-     slice_by_length([], 3) == [[]],
-     slice_by_length([1,2], 3) == [[1,2]],
-     slice_by_length([1,2,3,4,5,6], 3) == [[1,2,3], [4,5,6]],
-     slice_by_length([1,2,3,4,5,6,7], 3) == [[1,2,3], [4,5,6], [7]]
-    ].
-
-%%  @ doc Testing function. 
-%%  @ spec TestFunction -- function to be tested
-%%         TestName -- name of the test (displayed while testing)
-test(TestFunction, TestName) ->
-    io:fwrite("Testing ~s ", [TestName]),
-    Result = TestFunction(),
-    case lists:all(fun(P)->P end, Result) of
-        true -> io:fwrite("\t\t\t\t OK~n");
-        _    -> io:fwrite("\t\t\t\t FAILURE ~w~n", [Result])
+%% @doc Sends partitioned data to map workers and collects results.
+%% @spec (MapData, MapWorkerPids) -> IntermediateData where
+%%     MapData = [{K1,V1}],
+%%     MapWorkerPids = [pid()],
+%%     IntermediateData = [{K2,V2}]
+execute_map_phase(MapData, MapWorkerPids) ->
+    MapDataParts = partition_map_data(MapData, length(MapWorkerPids)),
+    
+    %% Spread data among the map workers.
+    case lists:foreach(lists:zip(MapWorkerPids, MapDataParts)) of
+        {MapWorkerPid, MapDataPart} ->
+            MapWorkerPid ! {self(), {map_data, MapDataPart}}
     end,
-    ok.
+    
+    MapResult = collect_map_results(MapWorkerPids),
+    MapResult.
+
+
+%% @doc Executes reduction phase of the map/reduce operation.
+%% @spec (ReduceData, ReduceWorkerPids) -> FinalResult where
+%%     ReduceData = [{K2,V2}],
+%%     ReduceWorkerPids = [pid()],
+%%     FinalResult = [{K3,V3}]
+execute_reduce_phase(ReduceData, ReduceWorkerPids) ->
+    ReduceResult = ReduceData,
+    %% TODO: implement reduce phase.
+    ReduceResult.
+
