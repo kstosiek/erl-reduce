@@ -22,6 +22,6 @@ run(MapFunction) ->
     receive
         {MasterPid, {map_data, MapData}} ->
             MapResult = MapFunction(MapData),
-            MasterPid ! {map_result, MapResult}
+            MasterPid ! {self(), {map_result, MapResult}}
     end.
 
