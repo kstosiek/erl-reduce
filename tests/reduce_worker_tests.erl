@@ -11,13 +11,6 @@
 %% API Functions
 %%
 
-reduce_phase_successful_computation_test() ->
-    ReduceData = [{1,"a"}],
-    ActualResult = master:execute_reduce_phase(ReduceData, []),
-    ExpectedResult = ReduceData,
-    ?assertEqual(ExpectedResult, ActualResult).
-
-
 % Simple reduce_worker protocol test
 reduce_worker_protocol_test() ->
     ReduceData = [{1,["a"]}],

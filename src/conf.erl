@@ -16,12 +16,23 @@ map_function() ->
 
 %% @doc Reference to the reduce function used in given computation. This is
 %%     where the problem-related reduce function may be plugged. It is
-%%     strongly advised to define the custom map function in a separate module.
+%%     strongly advised to define the custom reduce function in a separate
+%%     module.
 %% @spec (IntermediateData) -> FinalData where
 %%     IntermediateData = [{K2,V2}],
 %%     FinalData = [{K3,V3}]
 reduce_function() ->
     fun (IntermediateData) -> reduce:reduce(IntermediateData) end.
+
+
+%% @doc Reference to the recipe function used in given computation. This is
+%%     where the problem-related recipe function may be plugged. It is
+%%     strongly advised to define the custom recipe in a separate module.
+%% @spec (IntermediateData) -> FinalData where
+%%     IntermediateData = [{K2,V2}],
+%%     FinalData = [{K3,V3}]
+recipe () ->
+    fun (IntermediateKey) -> recipe:recipe(IntermediateKey) end.
 
 
 %% @doc List of nodes participating in the map/reduce computation
