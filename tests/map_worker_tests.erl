@@ -11,14 +11,23 @@
 %% API Functions
 %%
 
-map_phase_successful_computation_test() ->
+map_worker_successful_computation_test() ->
     MapData = [{1,"a"}],
+    MasterPid = self(),
+    Recipe = fun (_) -> MasterPid end, 
     MapWorkerPid = spawn_link(map_worker, run, [fun(Data) -> Data end]),
     MapWorkerPid ! {self(), {map_data, MapData}},
     receive
-        {_, {map_result, ActualResult}} ->
-            ExpectedResult = [{1, "a"}],
-            ?assertEqual(ExpectedResult, ActualResult)
+        {_, map_finished} ->
+            MapWorkerPid ! {self(), {recipe, Recipe}}
+    end,
+    receive
+        {_, {reduce_data, _ }} ->
+            MapWorkerPid ! {self(), reduce_data_acknowledged}
+    end,
+    receive
+        {_, map_send_finished} ->
+            success
     end,
     exit(MapWorkerPid, kill).
 

@@ -32,39 +32,43 @@ master_protocol_test() ->
                            [fun(MapData) -> MapData end])],
     ReduceWorkerPids = [spawn(reduce_worker, run,
                               [fun(ReduceData) -> ReduceData end])],
-
-    ActualResult = master:run(MapWorkerPids, ReduceWorkerPids, [{1, "a"}]),
-    ExpectedResult = [[{1, "a"}]],
+    InputData = [{1, "a"}],
+    Recipe = fun (_) -> lists:nth(1, ReduceWorkerPids) end,
+    ActualResult = master:run(MapWorkerPids,
+                              ReduceWorkerPids,
+                              InputData,
+                              Recipe),
+    ExpectedResult = [{1, "a"}],
     ?assertEqual(ExpectedResult, ActualResult),
 
     lists:foreach(fun(Pid) -> exit(Pid, kill) end, MapWorkerPids),
     lists:foreach(fun(Pid) -> exit(Pid, kill) end, ReduceWorkerPids).
 
 
-% This is a large test.
-map_phase_successful_computation_test() ->
-    MapData = [{1,"a"}],
-    MapWorkerPids = [spawn(map_worker, run,
-                           [fun(Data) -> Data end])],
-    
-    ActualResult = master:execute_map_phase(MapData, MapWorkerPids),
-    ExpectedResult = [[{1, "a"}]],
-    ?assertEqual(ExpectedResult, ActualResult),
-
-    lists:foreach(fun(Pid) -> exit(Pid, kill) end, MapWorkerPids).
-
-
-% This is a large test.
-reduce_phase_successful_computation_test() ->
-    ReduceData = [{1,"a"}],
-    ReduceWorkerPids = [spawn(reduce_worker, run,
-                           [fun(Data) -> Data end])],
-
-    ActualResult = master:execute_reduce_phase(ReduceData, ReduceWorkerPids),
-    ExpectedResult = [{1, "a"}],
-    ?assertEqual(ExpectedResult, ActualResult),
-
-    lists:foreach(fun(Pid) -> exit(Pid, kill) end, ReduceWorkerPids).
+%% % This is a large test.
+%% map_phase_successful_computation_test() ->
+%%     MapData = [{1,"a"}],
+%%     MapWorkerPids = [spawn(map_worker, run,
+%%                            [fun(Data) -> Data end])],
+%%     
+%%     ActualResult = master:execute_map_phase(MapData, MapWorkerPids),
+%%     ExpectedResult = [[{1, "a"}]],
+%%     ?assertEqual(ExpectedResult, ActualResult),
+%% 
+%%     lists:foreach(fun(Pid) -> exit(Pid, kill) end, MapWorkerPids).
+%% 
+%% 
+%% % This is a large test.
+%% reduce_phase_successful_computation_test() ->
+%%     ReduceData = [{1,"a"}],
+%%     ReduceWorkerPids = [spawn(reduce_worker, run,
+%%                            [fun(Data) -> Data end])],
+%% 
+%%     ActualResult = master:execute_reduce_phase(ReduceData, ReduceWorkerPids),
+%%     ExpectedResult = [{1, "a"}],
+%%     ?assertEqual(ExpectedResult, ActualResult),
+%% 
+%%     lists:foreach(fun(Pid) -> exit(Pid, kill) end, ReduceWorkerPids).
 
 
 

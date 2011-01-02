@@ -1,4 +1,5 @@
-%% Author: Marcin Milewski (mmilewski@gmail.com)
+%% Author: Marcin Milewski (mmilewski@gmail.com),
+%%         Karol Stosiek (karol.stosiek@gmail.com)
 %% Created: 21-11-2010
 %% Description: Coordinates the map/reduce computation: feeds workers with data,
 %%     takes care of dying workers and returns collected data to the user.
@@ -7,10 +8,10 @@
 %%
 %% Exported Functions.
 %% TODO: move partition_map_data/2 to a separate module.
--export([run/3,
+-export([run/4,
          partition_map_data/2,
-         execute_map_phase/2, % exported for testing purposes.
-         execute_reduce_phase/2 % exported for testing purporses.
+         execute_map_phase/3, % exported for testing purposes.
+         execute_reduce_phase/1 % exported for testing purporses.
         ]).
 
 
@@ -26,16 +27,17 @@
 %%    ReduceWorkerPids = [pid()],
 %%    InputData = [{K1,V1}],
 %%    FinalResult = [{K3,V3}]
-run(MapWorkerPids, ReduceWorkerPids, InputData)
+run(MapWorkerPids, ReduceWorkerPids, InputData, Recipe)
   when length(MapWorkerPids) > 0,
        length(ReduceWorkerPids) > 0 ->   
-    MapResult = execute_map_phase(InputData, MapWorkerPids),
-    ReduceResult = execute_reduce_phase(MapResult, ReduceWorkerPids),
-    ReduceResult.
+    execute_map_phase(InputData, MapWorkerPids, Recipe),
+    execute_reduce_phase(ReduceWorkerPids).
+
 
 %%
 %% Local Functions.
 %%
+
 
 %% @doc Partitions given Data into chunks of at most ChunkSize and appends
 %%     resulting chunk to the Accumulator. If there is at least ChunkSize
@@ -67,53 +69,39 @@ partition_data_with_accumulator(Data, ChunkSize, Accumulator) ->
 partition_map_data(Data, Chunks) ->
     partition_data_with_accumulator(Data, round(length(Data) / Chunks), []).
 
-%% @doc Collects results from given map workers (MapWorkerPids)
-%%     into CollectedResults (accumulator); RemainingWorkers contains
-%%     information on how many workers left need to return results.
-%%     TODO: use pid set instead of count (RemainingWorkers).
-%% @spec (MapWorkerPids, CollectedResults, RemainingWorkers) ->
-%%     IntermediateData where
-%%     MapWorkerPids = [pid()],
-%%     CollectedResults = [{K2,V2}],
-%%     RemainingWorkers = int()
-collect_map_results_loop(_, CollectedResults, 0) ->
-    CollectedResults;
-
-collect_map_results_loop(MapWorkerPids,
-                         CollectedResults,
-                         RemainingWorkers) when RemainingWorkers > 0 ->
-    receive
-        {MapWorkerPid, {map_result, Result}} ->
-            collect_map_results_loop(MapWorkerPids, [Result|CollectedResults],
-                                     RemainingWorkers - 1)
-    end.
-
-
-%% @doc Collects mapped data from map workers until all workers return their
-%%    results.
-%% @spec (MapWorkerPids) -> IntermediateData where
-%%     MapWorkerPids = [pid()],
-%%     IntermediateData = [{K2,V2}]
-collect_map_results_1(MapWorkerPids) ->
-    collect_map_results_loop(MapWorkerPids, [], length(MapWorkerPids)).
-
 
 %% @doc Sends partitioned data to map workers and collects results.
-%% @spec (MapData, MapWorkerPids) -> IntermediateData where
+%% @spec (MapData, MapWorkerPids, Recipe) -> IntermediateData where
 %%     MapData = [{K1,V1}],
 %%     MapWorkerPids = [pid()],
-%%     IntermediateData = [{K2,V2}]
+%%     IntermediateData = [{K2,V2}],
+%%     Recipe = (K2) -> ReducerPid,
+%%     ReducerPid = pid()
 %% @private
-execute_map_phase(MapData, MapWorkerPids) ->
+execute_map_phase(MapData, MapWorkerPids, Recipe) ->
     MapDataParts = partition_map_data(MapData, length(MapWorkerPids)),
     
-    %% Spread data among the map workers.
+    % Spread data among the map workers.
     lists:foreach(fun({MapWorkerPid, MapDataPart}) ->
                           MapWorkerPid ! {self(), {map_data, MapDataPart}}
                   end,
                   lists:zip(MapWorkerPids, MapDataParts)),
-    MapResult = collect_map_results_1(MapWorkerPids),
-    MapResult.
+    
+    % Collect map_finished messages and send the recipe.
+    lists:foreach(fun (_) ->
+                           receive
+                               {MapperPid, map_finished} ->
+                                   MapperPid ! {self(), {recipe, Recipe}}
+                           end
+                  end, MapWorkerPids),
+
+    % Collect map_send_finished messages.
+    lists:foreach(fun (_) ->
+                           receive
+                               {_, map_send_finished} ->
+                                   ok
+                           end
+                  end, MapWorkerPids).
 
 
 %% @doc Executes reduction phase of the map/reduce operation.
@@ -122,8 +110,19 @@ execute_map_phase(MapData, MapWorkerPids) ->
 %%     ReduceWorkerPids = [pid()],
 %%     FinalResult = [{K3,V3}]
 %% @private
-execute_reduce_phase(ReduceData, ReduceWorkerPids) ->
-    ReduceResult = ReduceData,
-    %% TODO: implement reduce phase.
-    ReduceResult.
+execute_reduce_phase(ReduceWorkerPids) ->
+    % Initiate reduction.
+    lists:foreach(fun (ReducerPid) ->
+                           ReducerPid ! {self(), start_reducing}
+                  end, ReduceWorkerPids),
+
+    % Collect and return final results.
+    lists:foldl(fun (_, ReduceResults) ->
+                         receive
+                             {_, {reduce_finished, ReduceResult}} ->
+                                 ReduceResult ++ ReduceResults
+                         end
+                end, [], ReduceWorkerPids).
+    
+    
 

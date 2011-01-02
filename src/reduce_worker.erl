@@ -1,4 +1,5 @@
-%% Author: Piotr Polesiuk (bassists@o2.pl)
+%% Author: Piotr Polesiuk (bassists@o2.pl),
+%%         Karol Stosiek (karol.stosiek@gmail.com)
 %% Created: 25-12-2010
 %% Description: Implementation of reduce worker, performing the reduce operation
 %%    on given input.
@@ -42,7 +43,8 @@ collect_reduce_data_loop(CollectedResultsDict) ->
         {MapperPid, {reduce_data, ReduceData}} ->
             NewCollectedResults = 
                 lists:foldl(fun({Key, Value}, Dict) ->
-                                    dict:append_list(Key, Value, Dict) end, 
+                                    dict:append_list(Key, Value, Dict)
+                            end, 
                             CollectedResultsDict, ReduceData),
             MapperPid ! {self(), reduce_data_acknowledged},
             collect_reduce_data_loop(NewCollectedResults);
