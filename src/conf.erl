@@ -13,6 +13,7 @@
 map_function() ->
     fun (MapData) -> map:map(MapData) end.
 
+
 %% @doc Reference to the reduce function used in given computation. This is
 %%     where the problem-related reduce function may be plugged. It is
 %%     strongly advised to define the custom map function in a separate module.
@@ -30,7 +31,6 @@ reduce_function() ->
 %% @spec () -> [string()].
 map_worker_nodes() ->
     ['map1@localhost', 'map2@localhost', 'map3@localhost'].
-
 
 
 %% @doc List of nodes participating in the map/reduce computation
