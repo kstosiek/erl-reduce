@@ -31,8 +31,8 @@ reduce_function() ->
 %% @spec (IntermediateData) -> FinalData where
 %%     IntermediateData = [{K2,V2}],
 %%     FinalData = [{K3,V3}]
-recipe () ->
-    fun (IntermediateKey) -> recipe:recipe(IntermediateKey) end.
+recipe(ReduceNodes) ->
+    recipe:create_recipe(ReduceNodes).
 
 
 %% @doc List of nodes participating in the map/reduce computation

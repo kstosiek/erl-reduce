@@ -19,7 +19,7 @@ eval(InputData) ->
                                       conf:map_worker_nodes()),
     ReduceWorkerPids = spawn_reduce_workers(conf:reduce_function(),
                                             conf:reduce_worker_nodes()),
-    Recipe = conf:recipe(),
+    Recipe = conf:recipe(ReduceWorkerPids),
     MapReduceResult = master:run(MapWorkerPids,
                                  ReduceWorkerPids,
                                  InputData,

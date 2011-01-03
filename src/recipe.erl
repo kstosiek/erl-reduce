@@ -6,12 +6,17 @@
 %%
 %% Exported Functions
 %%
--export([recipe/1]).
+-export([create_recipe/1]).
 
-%% @doc Maps given input into intermediate data.
-%% @spec (IntermediateKey) -> ReducerPid where
+%%
+%% API Functions.
+%%
+
+%% @doc Given a list of reducer pids, creates a recipe function. 
+%% @spec (ReducerPids) -> (IntermediateKey) -> ReducerPid where
 %%     IntermediateKey = K2,
+%%     ReducerPids = [pid()],
 %%     ReducerPid = pid()
 %% @throws not_implemented
-recipe(_) ->
+create_recipe(_) ->
     throw(not_implemented).

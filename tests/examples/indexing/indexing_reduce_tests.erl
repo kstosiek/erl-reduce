@@ -1,6 +1,6 @@
 %% Author: Karol Stosiek (karol.stosiek@gmail.com)
 %% Created: 09-12-2010
--module(indexing_reduce_test).
+-module(indexing_reduce_tests).
 
 %%
 %% Include files
