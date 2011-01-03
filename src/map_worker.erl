@@ -25,12 +25,12 @@ run(MapFunction) ->
             MasterPid ! {self(), map_finished},
             receive
                 {_, {recipe, Recipe}} ->
-                    ReductorPidsWithData = split_data_among_reducers(MapResult,
+                    ReducerPidsWithData = split_data_among_reducers(MapResult,
                                                                      Recipe),
-                    ReductorPids = dict:fetch_keys(ReductorPidsWithData),
+                    ReducerPids = dict:fetch_keys(ReducerPidsWithData),
                     
-                    send_data_to_reducers(ReductorPids, ReductorPidsWithData),
-                    collect_acknowledgements(ReductorPids),
+                    send_data_to_reducers(ReducerPids, ReducerPidsWithData),
+                    collect_acknowledgements(ReducerPids),
                     
                     MasterPid ! {self(), map_send_finished}
             end
@@ -41,17 +41,17 @@ run(MapFunction) ->
 %% Local Functions.
 %%
 
-%% @doc Sends all data to reductors.
-%% @spec (ReductorPids, ReductorPidsWithData) -> void() where
-%%     ReductorPids = [pid()],
-%%     ReductorPidsWithData = dictionary()
-%% @privata
-send_data_to_reducers(ReductorPids, ReductorPidsWithData) ->
-    lists:foreach(fun (ReductorPid) ->
-                           ReduceData = dict:fetch(ReductorPid,
-                                                   ReductorPidsWithData),
-                           ReductorPid ! {self(), {reduce_data, ReduceData}}
-                  end, ReductorPids).
+%% @doc Sends all data to reducers.
+%% @spec (ReducerPids, ReducerPidsWithData) -> void() where
+%%     ReducerPids = [pid()],
+%%     ReducerPidsWithData = dictionary()
+%% @private
+send_data_to_reducers(ReducerPids, ReducerPidsWithData) ->
+    lists:foreach(fun (ReducerPid) ->
+                           ReduceData = dict:fetch(ReducerPid,
+                                                   ReducerPidsWithData),
+                           ReducerPid ! {self(), {reduce_data, ReduceData}}
+                  end, ReducerPids).
 
 
 %% @doc Collects reduce data receival acknowledgements from the given set
@@ -84,18 +84,18 @@ collect_acknowledgements(ReducerPids) ->
 
 %% @doc Given a recipe, creates a mapping from reducer pid to a list with data
 %%    to be sent to it.
-%% @spec (Data, Recipe) -> ReductorPidsWithData where
+%% @spec (Data, Recipe) -> ReducerPidsWithData where
 %%     Data = [{K2,V2}],
-%%     Recipe = K2 -> ReductorPid,
-%%     ReductorPid = pid(),
-%%     ReductorPidsWithData = set()
+%%     Recipe = K2 -> ReducerPid,
+%%     ReducerPid = pid(),
+%%     ReducerPidsWithData = dict()
 %% @private
 split_data_among_reducers(Data, Recipe) ->
-    lists:foldl(fun ({Key, Value}, ReductorPidWithData) ->
+    lists:foldl(fun ({Key, Value}, ReducerPidWithData) ->
                          dict:update(Recipe(Key),
                                      fun (OldData) ->
                                               [{Key, Value} | OldData]
                                      end,
                                      [{Key, Value}],
-                                     ReductorPidWithData)
+                                     ReducerPidWithData)
                 end, dict:new(), Data).
