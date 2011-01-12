@@ -3,15 +3,29 @@
 %% Description: Implementation of Map-Reduce solution for Word Indexing problem:
 %%     create an "index" of a body of text -- given a text file, output a list
 %%     of words annotated with the line-number at which each word appears. 
--module(indexing_main).
+-module(indexing_input).
 
 %%
 %% Exported Functions
 %%
--export([run/1]).
+-export([data/0]).
 
 %%
 %% API Functions
+%%
+
+%% @doc Returns map data for the indexing problem. Currently returns
+%%     the contents of "Tale of Two Cities" poem.
+%% @spec () -> MapData where
+%%     MapData = [{K1,V1}],
+%%     K1 = LineContents = string(),
+%%     V1 = LineNo = int().
+%% @throws {error, atom()} Thrown on I/O errors.
+data() ->
+    get_file_contents("../src/examples/indexing/data/tale_of_two_cities.txt").
+
+%%
+%% Private Functions.
 %%
 
 %% @doc Runs the Map-Reduce solution for Word Indexing problem.
@@ -23,7 +37,7 @@
 %%     in question occurs.
 %% @spec (string()) -> [{string(), [int()]}]
 %% @throws {error, atom()} Thrown on I/O errors.
-run(FileName) ->
+get_file_contents(FileName) ->
     case file:open(FileName, read) of
         {ok, IoDevice} -> 
             indexing_reduce:reduce(
