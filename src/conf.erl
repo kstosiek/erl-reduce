@@ -11,7 +11,7 @@
 %%     MapData = [{K1,V1}],
 %%     IntermediateData = [{K2,V2}]
 map_function() ->
-    fun (MapData) -> map:map(MapData) end.
+    fun (MapData) -> indexing_map:map(MapData) end.
 
 
 %% @doc Reference to the reduce function used in given computation. This is
@@ -22,7 +22,7 @@ map_function() ->
 %%     IntermediateData = [{K2,V2}],
 %%     FinalData = [{K3,V3}]
 reduce_function() ->
-    fun (IntermediateData) -> reduce:reduce(IntermediateData) end.
+    fun (IntermediateData) -> indexing_reduce:reduce(IntermediateData) end.
 
 
 %% @doc Reference to the recipe function used in given computation. This is
@@ -32,8 +32,15 @@ reduce_function() ->
 %%     IntermediateData = [{K2,V2}],
 %%     FinalData = [{K3,V3}]
 recipe(ReduceNodes) ->
-    recipe:create_recipe(ReduceNodes).
+    indexing_recipe:create_recipe(ReduceNodes).
 
+%% @doc Reference to the data function used in given computation. This is
+%%     where the problem-related data function may be plugged. It is
+%%     strongly advised to define the custom data function in a separate module.
+%% @spec () -> MapData where
+%%     MapData = [{K1,V1}]
+input_data() ->
+    indexing_input:data().
 
 %% @doc List of nodes participating in the map/reduce computation
 %%     instance as hosts for map workers. You can provide your own names here
@@ -41,7 +48,7 @@ recipe(ReduceNodes) ->
 %%     depends on implementation, obviously.
 %% @spec () -> [string()].
 map_worker_nodes() ->
-    ['map1@localhost', 'map2@localhost', 'map3@localhost'].
+    ['map1@yennefer'].
 
 
 %% @doc List of nodes participating in the map/reduce computation
@@ -50,5 +57,5 @@ map_worker_nodes() ->
 %%     returned depends on implementation, obviously.
 %% @spec () -> [string()].
 reduce_worker_nodes() ->
-    ['reduce1@localhost', 'reduce2@localhost', 'reduce3@localhost'].
+    ['reduce1@yennefer'].
 

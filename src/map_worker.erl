@@ -19,19 +19,35 @@
 %%     MapData = [{K1,V1}],
 %%     IntermediateData = [{K2,V2}]
 run(MapFunction) ->
+    error_logger:info_msg("Map worker ~p started; waiting for map data...",
+                          [self()]),
     receive
-        {MasterPid, {map_data, MapData}} ->            
+        {MasterPid, {map_data, MapData}} ->
+            error_logger:info_msg("Received map data; mapping..."),
+
             MapResult = MapFunction(MapData),
             MasterPid ! {self(), map_finished},
+
+            error_logger:info_msg("Mapping finished; waiting for recipe..."),
+            
             receive
                 {_, {recipe, Recipe}} ->
+                    error_logger:info_msg("Received recipe; splitting data..."),
+
                     ReducerPidsWithData = split_data_among_reducers(MapResult,
                                                                      Recipe),
                     ReducerPids = dict:fetch_keys(ReducerPidsWithData),
                     
+                    error_logger:info_msg("Sending data to reducers ~p...",
+                                          [ReducerPids]),
                     send_data_to_reducers(ReducerPids, ReducerPidsWithData),
+                    
+                    error_logger:info_msg("Collecting acknowledgements from "
+                                         "reducers ~p...", [ReducerPids]),
                     collect_acknowledgements(ReducerPids),
                     
+                    error_logger:info_msg("Notifying master mapper ~p is done "
+                                         "and quitting.", [self()]),
                     MasterPid ! {self(), map_send_finished}
             end
     end.
@@ -48,6 +64,9 @@ run(MapFunction) ->
 %% @private
 send_data_to_reducers(ReducerPids, ReducerPidsWithData) ->
     lists:foreach(fun (ReducerPid) ->
+                           error_logger:info_msg("Sending data to reducer ~p.",
+                                                 [ReducerPid]),
+
                            ReduceData = dict:fetch(ReducerPid,
                                                    ReducerPidsWithData),
                            ReducerPid ! {self(), {reduce_data, ReduceData}}
@@ -63,13 +82,22 @@ send_data_to_reducers(ReducerPids, ReducerPidsWithData) ->
 %% @private
 collect_acknowledgements_loop(RemainingReducerPids) ->
     case sets:size(RemainingReducerPids) of
-        0 -> void;
+        0 ->
+            error_logger:info_msg("Acknowledgements from reducers collected!"),
+            void;
 
         _ -> 
             receive
                 {ReducerPid, reduce_data_acknowledged} ->
-                    collect_acknowledgements_loop(
-                      sets:del_element(ReducerPid, RemainingReducerPids))
+                    NewRemainingReducerPids = sets:del_element(
+                                             ReducerPid,
+                                             RemainingReducerPids),
+
+                    error_logger:info_msg("Received acknowledgement "
+                                         "from reducer ~p; waiting for ~p.",
+                                         [ReducerPid]),
+
+                    collect_acknowledgements_loop(NewRemainingReducerPids)
             end 
     end.
 

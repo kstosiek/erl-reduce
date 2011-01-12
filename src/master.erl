@@ -29,7 +29,9 @@
 %%    FinalResult = [{K3,V3}]
 run(MapWorkerPids, ReduceWorkerPids, InputData, Recipe)
   when length(MapWorkerPids) > 0,
-       length(ReduceWorkerPids) > 0 ->   
+       length(ReduceWorkerPids) > 0 ->
+    error_logger:info_msg("Starting master (~p).", [self()]),
+    
     execute_map_phase(InputData, MapWorkerPids, Recipe),
     execute_reduce_phase(ReduceWorkerPids).
 
@@ -79,29 +81,46 @@ partition_map_data(Data, Chunks) ->
 %%     ReducerPid = pid()
 %% @private
 execute_map_phase(MapData, MapWorkerPids, Recipe) ->
+    error_logger:info_msg("Starting map phase with map workers ~p",
+                          [MapWorkerPids]),
+    
     MapDataParts = partition_map_data(MapData, length(MapWorkerPids)),
     
+    
     % Spread data among the map workers.
+    error_logger:info_msg("Spreading map data among map workers ~p",
+                          [MapWorkerPids]),
     lists:foreach(fun({MapWorkerPid, MapDataPart}) ->
                           MapWorkerPid ! {self(), {map_data, MapDataPart}}
                   end,
                   lists:zip(MapWorkerPids, MapDataParts)),
-    
+
     % Collect map_finished messages and send the recipe.
+    error_logger:info_msg("Collecting map_finished messages and sending "
+                              "the recipes..."),
     lists:foreach(fun (_) ->
                            receive
                                {MapperPid, map_finished} ->
+                                   error_logger:info_msg(
+                                     "Received {map_finished} message from ~p; "
+                                         "sending the recipe...",
+                                         [MapperPid]),
+                                   
                                    MapperPid ! {self(), {recipe, Recipe}}
                            end
                   end, MapWorkerPids),
+    
 
     % Collect map_send_finished messages.
+    error_logger:info_msg("Collecting map_send_finished messages..."),
     lists:foreach(fun (_) ->
                            receive
                                {_, map_send_finished} ->
                                    ok
                            end
-                  end, MapWorkerPids).
+                  end, MapWorkerPids),
+
+    error_logger:info_msg("Map phase finished.").
 
 
 %% @doc Executes reduction phase of the map/reduce operation.
@@ -111,18 +130,33 @@ execute_map_phase(MapData, MapWorkerPids, Recipe) ->
 %%     FinalResult = [{K3,V3}]
 %% @private
 execute_reduce_phase(ReduceWorkerPids) ->
+    error_logger:info_msg("Starting reduce phase with reduce workers ~p",
+                          [ReduceWorkerPids]),
+
     % Initiate reduction.
+    error_logger:info_msg("Sending start signal to reduce workers ~p", 
+                          [ReduceWorkerPids]),
     lists:foreach(fun (ReducerPid) ->
+                           error_logger:info_msg(
+                             "Sending start signal to reduce worker ~p",
+                             [ReducerPid]),
+
                            ReducerPid ! {self(), start_reducing}
                   end, ReduceWorkerPids),
-
+    
     % Collect and return final results.
+    error_logger:info_msg("Collecting final results from reduce workers ~p",
+                          [ReduceWorkerPids]),
     lists:foldl(fun (_, ReduceResults) ->
                          receive
-                             {_, {reduce_finished, ReduceResult}} ->
+                             {ReducerPid, {reduce_finished, ReduceResult}} ->
+                                 error_logger:info_msg(
+                                   "Received final data from reducer ~p.",
+                                   [ReducerPid]),
+
                                  ReduceResult ++ ReduceResults
                          end
                 end, [], ReduceWorkerPids).
-    
-    
+
+
 

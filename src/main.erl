@@ -6,24 +6,33 @@
 %%
 %% Exported Functions
 %%
--export([eval/1]).
+-export([start/0]).
 
 
 %% @doc Runs MapReduce on given input. Sets up master and worker units
 %%     and performs the computation.
-%% @spec (MapData) -> FinalData where
+%% @spec () -> FinalData where
 %%    MapData = [{K1,V1}],
 %%    FinalData = [{K3,V3}]
-eval(InputData) ->
+start() ->
     MapWorkerPids = spawn_map_workers(conf:map_function(),
                                       conf:map_worker_nodes()),
     ReduceWorkerPids = spawn_reduce_workers(conf:reduce_function(),
                                             conf:reduce_worker_nodes()),
     Recipe = conf:recipe(ReduceWorkerPids),
+    InputData = conf:input_data(),
+
+    error_logger:info_msg("Starting map/reduce calculation with~n"
+                         "map workers: ~p~n"
+                         "reduce workers: ~p~n",
+                         [MapWorkerPids, ReduceWorkerPids]),
+
     MapReduceResult = master:run(MapWorkerPids,
                                  ReduceWorkerPids,
                                  InputData,
                                  Recipe),
+    error_logger:info_msg("Map/reduce finished."),    
+
     MapReduceResult.
 
 
