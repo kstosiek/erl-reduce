@@ -34,6 +34,7 @@ reduce_function() ->
 recipe(ReduceNodes) ->
     indexing_recipe:create_recipe(ReduceNodes).
 
+
 %% @doc Reference to the data function used in given computation. This is
 %%     where the problem-related data function may be plugged. It is
 %%     strongly advised to define the custom data function in a separate module.
@@ -41,6 +42,7 @@ recipe(ReduceNodes) ->
 %%     MapData = [{K1,V1}]
 input_data() ->
     indexing_input:data().
+
 
 %% @doc List of nodes participating in the map/reduce computation
 %%     instance as hosts for map workers. You can provide your own names here

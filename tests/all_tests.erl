@@ -8,4 +8,4 @@
 %%
 -export([run/0]).
 
-run () -> eunit:test({dir, "erl-reduce/ebin"}).
+run() -> eunit:test({dir, "erl-reduce/ebin"}).
