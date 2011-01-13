@@ -17,3 +17,17 @@ Pliki obiektowe projektu powstałe w wyniku kompilacji.
 Pliki źródłowe projektu.
 - tests/
 Pliki z testami jednostkowymi.
+
+Uruchomienie:
+1. Należy uruchomić środowisko uruchomieniowe erlang na każdej z maszyn biorących udział w obliczeniu.
+Przykład: załóżmy, że uruchamiamy środowisko uruchomieniowe o nazwie map1 na komputerze o nazwie yennefer.
+karol@yennefer> erl -sname map1
+
+Uwaga: należy zadbać, aby nazwy wraz z nazwą hosta w formacie nazwa@host znalazły się pliku conf.erl. Jeśli założymy, że w powyższym przykładzie maszyna została przeznaczona do mapowania, to w map_worker_nodes należy umieścic map1@yennefer jako jeden z elementów listy.
+
+2. Na maszynie będącej koordynatorem uruchamiamy środowisko uruchomieniowe erlang:
+karol@yennefer> erl -sname master
+
+3. W konsoli erlang wpisujemy main:start() i cieszymy się wynikami obliczenia.
+
+
