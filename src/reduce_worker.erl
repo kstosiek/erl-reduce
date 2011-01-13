@@ -25,7 +25,7 @@ run(ReduceFunction) ->
                               "data...", [self()]),
     
     {MasterPid, ReduceData} = collect_reduce_data(),
-    ReduceResult = lists:map(ReduceFunction, ReduceData),
+    ReduceResult = ReduceFunction(ReduceData),
     
     error_logger:info_msg("Reducing finished; notifying master (~p) "
                               "and quitting", [MasterPid]),

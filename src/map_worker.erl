@@ -93,9 +93,10 @@ collect_acknowledgements_loop(RemainingReducerPids) ->
                                                 ReducerPid,
                                                 RemainingReducerPids),
                     
-                    error_logger:info_msg("Received acknowledgement from "
-                                              "reducer ~p; waiting for ~p.",
-                                              [ReducerPid]),
+                    error_logger:info_msg(
+                      "Received acknowledgement from reducer ~p; "
+                          "waiting for ~p.",
+                          [ReducerPid, sets:to_list(NewRemainingReducerPids)]),
                     
                     collect_acknowledgements_loop(NewRemainingReducerPids)
             end 
@@ -120,7 +121,8 @@ collect_acknowledgements(ReducerPids) ->
 %% @private
 split_data_among_reducers(Data, Recipe) ->
     lists:foldl(fun ({Key, Value}, ReducerPidWithData) ->
-                         dict:update(Recipe(Key),
+                         DestinationReducerPid = Recipe(Key),
+                         dict:update(DestinationReducerPid,
                                      fun (OldData) ->
                                               [{Key, Value} | OldData]
                                      end,
