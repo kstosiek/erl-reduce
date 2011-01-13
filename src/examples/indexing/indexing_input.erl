@@ -15,7 +15,7 @@
 %%
 
 %% @doc Returns map data for the indexing problem. Currently returns
-%%     the contents of "Tale of Two Cities" poem.
+%%     the contents of "Tale of Two Cities" novel.
 %% @spec () -> MapData where
 %%     MapData = [{K1,V1}],
 %%     K1 = LineContents = string(),

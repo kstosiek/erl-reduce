@@ -94,7 +94,7 @@ execute_map_phase(MapData, MapWorkerPids, Recipe) ->
                           MapWorkerPid ! {self(), {map_data, MapDataPart}}
                   end,
                   lists:zip(MapWorkerPids, MapDataParts)),
-
+    
     % Collect map_finished messages and send the recipe.
     error_logger:info_msg("Collecting map_finished messages and sending "
                               "the recipes..."),
@@ -110,7 +110,7 @@ execute_map_phase(MapData, MapWorkerPids, Recipe) ->
                            end
                   end, MapWorkerPids),
     
-
+    
     % Collect map_send_finished messages.
     error_logger:info_msg("Collecting map_send_finished messages..."),
     lists:foreach(fun (_) ->
@@ -119,7 +119,7 @@ execute_map_phase(MapData, MapWorkerPids, Recipe) ->
                                    ok
                            end
                   end, MapWorkerPids),
-
+    
     error_logger:info_msg("Map phase finished.").
 
 
@@ -132,7 +132,7 @@ execute_map_phase(MapData, MapWorkerPids, Recipe) ->
 execute_reduce_phase(ReduceWorkerPids) ->
     error_logger:info_msg("Starting reduce phase with reduce workers ~p",
                           [ReduceWorkerPids]),
-
+    
     % Initiate reduction.
     error_logger:info_msg("Sending start signal to reduce workers ~p", 
                           [ReduceWorkerPids]),
@@ -140,7 +140,7 @@ execute_reduce_phase(ReduceWorkerPids) ->
                            error_logger:info_msg(
                              "Sending start signal to reduce worker ~p",
                              [ReducerPid]),
-
+                           
                            ReducerPid ! {self(), start_reducing}
                   end, ReduceWorkerPids),
     
@@ -153,7 +153,7 @@ execute_reduce_phase(ReduceWorkerPids) ->
                                  error_logger:info_msg(
                                    "Received final data from reducer ~p.",
                                    [ReducerPid]),
-
+                                 
                                  ReduceResult ++ ReduceResults
                          end
                 end, [], ReduceWorkerPids).
