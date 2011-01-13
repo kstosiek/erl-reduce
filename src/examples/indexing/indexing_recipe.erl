@@ -28,13 +28,14 @@
 %%     ReducerPids = [pid()],
 %%     ReducerPid = pid()
 create_recipe(ReducerPids) ->
-    BucketSize = 26 div length(ReducerPids),
+    BucketSize = 26 div max(length(ReducerPids) - 1, 1),
     fun (Word) ->
              FirstLetterOfTheWord = string:left(Word, 1),
              PositionInEnglishAlphabet = string:str(
                                            "abcdefghijklmnopqrstuvwxyz",
                                            string:to_lower(
                                              FirstLetterOfTheWord)),
-             lists:nth((PositionInEnglishAlphabet div BucketSize) + 1,
+             lists:nth(min((PositionInEnglishAlphabet div BucketSize) + 1,
+                           length(ReducerPids)),
                        ReducerPids)
-    end. 
+             end. 

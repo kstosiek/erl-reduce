@@ -16,7 +16,7 @@ reduce_worker_protocol_test() ->
     ReduceData = [{1,["a"]}],
     ExpectedResult = [{1, "a"}],
     ReduceWorkerPid = spawn(reduce_worker, run, 
-                            [fun({K,V}) -> {K, lists:concat(V)} end]),
+                            [fun([{K,V}]) -> [{K, lists:concat(V)}] end]),
     ReduceWorkerPid ! {self(), {reduce_data, ReduceData}},
     receive
         {_, reduce_data_acknowledged} ->
@@ -37,8 +37,12 @@ reduce_worker_successful_computation_test() ->
          [{"c", [2]}, {"d", [2,4]}]
         ],
     ExpectedResult = [{"a", 3}, {"b", 9}, {"c", 10}, {"d", 30}],
-    ReduceWorkerPid = spawn(reduce_worker, run, 
-                            [fun({K,V}) -> {K, lists:sum(V)} end]),
+    ReduceWorkerPid =
+        spawn(reduce_worker, run, 
+              [fun(DataToReduce) ->
+                       lists:map(fun ({K,V}) ->  {K, lists:sum(V)}  end,
+                                 DataToReduce)
+               end]),
     % send data to reducer.
     lists:foreach(fun(Data) -> 
                           ReduceWorkerPid ! {self(), {reduce_data, Data}}
