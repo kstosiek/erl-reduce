@@ -40,9 +40,7 @@ data() ->
 get_file_contents(FileName) ->
     case file:open(FileName, read) of
         {ok, IoDevice} -> 
-            indexing_reduce:reduce(
-              indexing_map:map(
-                get_file_contents_as_lines_with_line_no(IoDevice)));
+            get_file_contents_as_lines_with_line_no(IoDevice);
         {error, Reason} ->
             throw({error, Reason})
     end.
