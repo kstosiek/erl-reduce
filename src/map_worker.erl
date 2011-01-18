@@ -1,4 +1,5 @@
 %% Author: Karol Stosiek (karol.stosiek@gmail.com)
+%%         Piotr Polesiuk (bassists@o2.pl)
 %% Created: 25-12-2010
 %% Description: Implementation of map worker, performing the map operation
 %%    on given input.
@@ -49,6 +50,8 @@ run(MapFunction) ->
                     error_logger:info_msg("Notifying master mapper ~p is done "
                                               "and quitting.", [self()]),
                     MasterPid ! {self(), map_send_finished}
+			
+					% TODO: fault tolerance protocol extension implemntation. 
             end
     end.
 
@@ -75,8 +78,6 @@ send_data_to_reducers(ReducerPids, ReducerPidsWithData) ->
 
 %% @doc Collects reduce data receival acknowledgements from the given set
 %%     of reducers.
-%%     TODO: this will loop forever in case of a reducer failing to send
-%%     acknowledgements. Implement a fix.
 %% @spec (RemainingReducerPids) -> void() where
 %%     RemainingReducerPids = set()
 %% @private
@@ -95,6 +96,17 @@ collect_acknowledgements_loop(RemainingReducerPids) ->
                     
                     error_logger:info_msg(
                       "Received acknowledgement from reducer ~p; "
+                          "waiting for ~p.",
+                          [ReducerPid, sets:to_list(NewRemainingReducerPids)]),
+                    
+                    collect_acknowledgements_loop(NewRemainingReducerPids);
+				{ReducerPid, reduce_worker_down} ->
+					NewRemainingReducerPids = sets:del_element(
+                                                ReducerPid,
+                                                RemainingReducerPids),
+                    
+                    error_logger:info_msg(
+                      "Received 'down' message about reducer ~p; "
                           "waiting for ~p.",
                           [ReducerPid, sets:to_list(NewRemainingReducerPids)]),
                     
