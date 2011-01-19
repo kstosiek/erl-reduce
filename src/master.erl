@@ -15,6 +15,7 @@
          execute_reduce_phase/1 % exported for testing purporses.
         ]).
 
+-record(master_state, {alive_reducer_pids, dead_reducer_pids = []}).
 
 %%
 %% API Functions.
@@ -33,9 +34,12 @@ run(MapWorkerPids, ReduceWorkerPids, InputData, Recipe)
        length(ReduceWorkerPids) > 0 ->
     error_logger:info_msg("Starting master (~p).", [self()]),
     
-    RemainingReducerPids = 
-		execute_map_phase(InputData, MapWorkerPids, ReduceWorkerPids, Recipe),
-    execute_reduce_phase(RemainingReducerPids).
+    State =	execute_map_phase(InputData, MapWorkerPids, ReduceWorkerPids, Recipe),
+    Result = execute_reduce_phase(State),
+	
+	map_reducing_complete(MapWorkerPids, ReduceWorkerPids),
+	
+	Result.
 
 
 %%
@@ -76,12 +80,12 @@ partition_map_data(Data, Chunks) ->
 
 %% @doc Sends partitioned data to map workers and collects results.
 %%    TODO: fault tolerance extention protocol implementation.
-%% @spec (MapData, MapWorkerPids, ReduceWorkerPids, Recipe) -> RemainingReducerPids where
+%% @spec (MapData, MapWorkerPids, ReduceWorkerPids, Recipe) -> State where
 %%     MapData = [{K1,V1}],
 %%     MapWorkerPids = [pid()],
 %%     ReduceWorkerPids = [pid()],
 %%     Recipe = (K2) -> ReducerPid,
-%%     RemainingReducerPids = [pid()]
+%%     State = master_state
 %% @private
 execute_map_phase(MapData, MapWorkerPids, ReduceWorkerPids, Recipe) ->
     error_logger:info_msg("Starting map phase with map workers ~p",
@@ -120,83 +124,86 @@ execute_map_phase(MapData, MapWorkerPids, ReduceWorkerPids, Recipe) ->
 	
 	spawn(monitors, monitor_reduce_workers, [self(), ReduceWorkerPids]),
     
+	% TODO: create state in run function.
+	State = #master_state{alive_reducer_pids = ReduceWorkerPids},
+	
     % Collect map_send_finished messages.
     error_logger:info_msg("Collecting map_send_finished messages..."),
-    RemainingReducerPids = collect_map_send_finished(MapWorkerPids, ReduceWorkerPids),
+    ResultState = collect_map_send_finished(MapWorkerPids, State),
     
-    error_logger:info_msg("Map phase finished. Remaining reduce workers : ~p",
-						  [RemainingReducerPids]),
-	RemainingReducerPids.
+    error_logger:info_msg("Map phase finished.", []),
+	ResultState.
 
 %% @doc Collects map_send_finished messages. When reducer is down, sends 
 %%    reduce_worker_down message to map workers.
-%% @spec (MapWorkerPids, ReduceWorkerPids) -> RemainingReducerPids where
+%% @spec (MapWorkerPids, State) -> State where
 %%    MapWorkerPids = [pid()],
-%%    ReduceWorkerPids = [pid()],
-%%    RemainingReducerPids = [pid()]
+%%    State = master_state
 %% @private
-collect_map_send_finished([], ReduceWorkerPids) ->
-	ReduceWorkerPids;
-collect_map_send_finished(MapWorkerPids, ReduceWorkerPids) ->
+collect_map_send_finished([], State) ->
+	State;
+collect_map_send_finished(MapWorkerPids, State) ->
 	receive
 		{MapperPid, map_send_finished} ->
 			NewMapWorkerPids = lists:delete(MapperPid, MapWorkerPids),
-			collect_map_send_finished(NewMapWorkerPids, ReduceWorkerPids);
+			collect_map_send_finished(NewMapWorkerPids, State);
 		{ReducerPid, reduce_worker_down} ->
 			% inform mappers about dead reducer.
 			lists:foreach(fun(MapWorkerPid) ->
 								  MapWorkerPid ! {ReducerPid, reduce_worker_down}
 						  end, MapWorkerPids),
 			
-			NewReduceWorkerPids = lists:delete(ReducerPid, ReduceWorkerPids),
-			collect_map_send_finished(MapWorkerPids, NewReduceWorkerPids)
+			NewState = reducer_failure_state_update(ReducerPid, State),
+			collect_map_send_finished(MapWorkerPids, NewState)
 	end.
 
 
 %% @doc Executes reduction phase of the map/reduce operation.
-%% @spec (ReduceData, ReduceWorkerPids) -> FinalResult where
-%%     ReduceData = [{K2,V2}],
-%%     ReduceWorkerPids = [pid()],
+%% @spec (State) -> FinalResult where
+%%     State = master_state,
 %%     FinalResult = [{K3,V3}]
 %% @private
-execute_reduce_phase(ReduceWorkerPids) ->
+execute_reduce_phase(State) ->
     error_logger:info_msg("Starting reduce phase with reduce workers ~p",
-                          [ReduceWorkerPids]),
+                          [State#master_state.alive_reducer_pids]),
 	
     % Initiate reduction.
     error_logger:info_msg("Sending start signal to reduce workers ~p", 
-                          [ReduceWorkerPids]),
+                          [State#master_state.alive_reducer_pids]),
     lists:foreach(fun (ReducerPid) ->
                            error_logger:info_msg(
                              "Sending start signal to reduce worker ~p",
                              [ReducerPid]),
                            
                            ReducerPid ! {self(), start_reducing}
-                  end, ReduceWorkerPids),
+                  end, 
+				  State#master_state.alive_reducer_pids),
     
     % Collect and return final results.
     error_logger:info_msg("Collecting final results from reduce workers ~p",
-                          [ReduceWorkerPids]),
+                          [State#master_state.alive_reducer_pids]),
 	
-    collect_reduce_phase_results(ReduceWorkerPids, []).
+    collect_reduce_phase_results(State#master_state.alive_reducer_pids, [], State).
 
 %% @doc Collects all results of reducing phase. When one of reduce wokres fails,
 %%    function splits his job between other reducers (fault tolerance).
-%% @spec (ReduceWorkerPids, Accumulator) ->
-%%    ReduceWorkerPids = [pid()],
-%%    Accumulator = [{K3,V3}]
+%% @spec (RemainingReducerPids, Accumulator, State) -> FinalResult where
+%%     RemainingReducerPids = [pid()],
+%%     Accumulator = [{K3,V3}],
+%%     State = master_state,
+%%     FinalResult = [{K3,V3}]
 %% @private
-collect_reduce_phase_results([], Accumulator) ->
+collect_reduce_phase_results([], Accumulator, _) ->
 	Accumulator;
-collect_reduce_phase_results(ReduceWorkerPids, Accumulator) ->
+collect_reduce_phase_results(RemainingReducerPids, Accumulator, State) ->
 	receive
 		{ReducerPid, {reduce_finished, ReduceResult}} ->
 			error_logger:info_msg(
 			  "Received final data from reducer ~p.", 
 			  [ReducerPid]),
 			
-			RemainingReducerPids = lists:delete(ReducerPid, ReduceWorkerPids),
-			collect_reduce_phase_results(RemainingReducerPids, ReduceResult ++ Accumulator);
+			NewRemainingReducerPids = lists:delete(ReducerPid, RemainingReducerPids),
+			collect_reduce_phase_results(NewRemainingReducerPids, ReduceResult ++ Accumulator, State);
 		
 		{ReducerPid, reduce_worker_down} ->
 			error_logger:info_msg(
@@ -205,8 +212,30 @@ collect_reduce_phase_results(ReduceWorkerPids, Accumulator) ->
 			
 			% TODO: fault tolerance
 			
-			RemainingReducerPids = lists:filter(fun (Pid) -> 
-														 Pid =/= ReducerPid end, 
-												Accumulator),
-			collect_reduce_phase_results(RemainingReducerPids, Accumulator)
+			NewRemainingReducerPids = lists:delete(ReducerPid, RemainingReducerPids),
+			NewState = reducer_failure_state_update(ReducerPid, State),
+			
+			collect_reduce_phase_results(NewRemainingReducerPids, Accumulator, NewState)
 	end.
+
+%% @doc Updates state after reduce wokrer failure. 
+%% @spec (ReducerPid, State) -> State where
+%%     ReducerPid = pid(),
+%%     State = master_state
+%% @private
+reducer_failure_state_update(ReducerPid, State) ->
+	AliveReducerPids = State#master_state.alive_reducer_pids,
+	DeadReducerPids  = State#master_state.dead_reducer_pids,
+	State#master_state{alive_reducer_pids = lists:delete(ReducerPid, AliveReducerPids),
+										  dead_reducer_pids = [ReducerPid | DeadReducerPids]}.
+%% @doc Sends 'map_reducing_complete' message to all workers.
+%% @spec (MapWorkerPids, ReduceWorkerPids) -> () where
+%%     MapWorkerPids = [pid()],
+%%     ReduceWorkerPids = [pid()]
+map_reducing_complete(MapWorkerPids, ReduceWorkerPids) ->
+	error_logger:info_msg("Map-Reduce complete. Notifying mappers ~p and reducers ~p.",
+						 [MapWorkerPids, ReduceWorkerPids]),
+	
+	lists:foreach(fun (WorkerPid) -> 
+						   WorkerPid ! {self(), map_reducing_complete}
+				  end, MapWorkerPids ++ ReduceWorkerPids).

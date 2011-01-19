@@ -47,11 +47,14 @@ run(MapFunction) ->
                                               "reducers ~p...", [ReducerPids]),
                     collect_acknowledgements(ReducerPids),
                     
-                    error_logger:info_msg("Notifying master mapper ~p is done "
-                                              "and quitting.", [self()]),
-                    MasterPid ! {self(), map_send_finished}
+                    error_logger:info_msg("Notifying master mapper ~p is done.", [self()]),
+                    MasterPid ! {self(), map_send_finished},
 			
-					% TODO: fault tolerance protocol extension implemntation. 
+					% TODO: fault tolerance protocol extension implemntation.					
+					receive
+						{_, map_reducing_complete} ->
+							error_logger:info_msg("Map-reducing finished. Quitting.", [])
+					end 
             end
     end.
 

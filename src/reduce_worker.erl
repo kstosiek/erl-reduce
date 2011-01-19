@@ -24,14 +24,22 @@ run(ReduceFunction) ->
     error_logger:info_msg("Reduce worker ~p started. Waiting for reduce "
                               "data...", [self()]),
     
-    {MasterPid, ReduceData} = collect_reduce_data(),
-    ReduceResult = ReduceFunction(ReduceData),
+	CollectionResult = collect_reduce_data(),
+	case CollectionResult of
+		map_reducing_complete ->
+			error_logger:info_msg("Map-reducing finished. Quitting.", []);
+		
+		{data_collected, MasterPid, ReduceData} ->
+			ReduceResult = ReduceFunction(ReduceData),
     
-    error_logger:info_msg("Reducing finished; notifying master (~p) "
-                              "and quitting", [MasterPid]),
+    		error_logger:info_msg("Reducing finished; notifying master (~p)."
+								 " and waiting for new instructions",
+								 [MasterPid]),
     
-    MasterPid ! {self(), {reduce_finished, ReduceResult}}.
-
+    		MasterPid ! {self(), {reduce_finished, ReduceResult}},
+			
+			run(ReduceFunction)
+	end.
 
 %%
 %% Local Functions.
@@ -39,9 +47,11 @@ run(ReduceFunction) ->
 
 %% @doc Receives map results from mappers and collects them into accumulator 
 %%     (CollectedResultsDict) until receives start_reducing message from master.
-%%     Function returns master PID and collected data.
-%% @spec Accumulator -> {MasterPid, CollectedData} where
+%%     Function returns master PID and collected data or 'map_reducing_complete' 
+%%     term, when computation is complete.
+%% @spec Accumulator -> Result where
 %%     Accumulator = dictionary(),
+%%     Result = {'data_collected', MasterPid, CollectedData} | 'map_reducing_complete',
 %%     MasterPid = pid(),
 %%     CollectedData = [{K2,[V2]}]
 %% @private
@@ -68,14 +78,17 @@ collect_reduce_data_loop(CollectedResultsDict) ->
                                       "signal from master (~p).",
                                       [MasterPid]),
             
-            {MasterPid, dict:to_list(CollectedResultsDict)}
+            {data_collected, MasterPid, dict:to_list(CollectedResultsDict)};
+		{_, map_reducing_complete} ->
+			map_reducing_complete
     end.
 
 
 %% @doc Collects map results from mappers until receives 
 %%     start_reducing message from master. Function returns master PID
-%%     and collected data.
-%% @spec () -> {MasterPid, CollectedData} where
+%%     and collected data or 'map_reducing_complete' term, when computation is complete.
+%% @spec () -> Result where
+%%     Result = {'data_collected', MasterPid, CollectedData} | 'map_reducing_complete',
 %%     MasterPid = pid(),
 %%     CollectedData = [{K2,[V2]}]
 %% @private
