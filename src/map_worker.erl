@@ -50,11 +50,7 @@ run(MapFunction) ->
                     error_logger:info_msg("Notifying master mapper ~p is done.", [self()]),
                     MasterPid ! {self(), map_send_finished},
 			
-					% TODO: fault tolerance protocol extension implemntation.					
-					receive
-						{_, map_reducing_complete} ->
-							error_logger:info_msg("Map-reducing finished. Quitting.", [])
-					end 
+					additional_reduce_phase(ReducerPidsWithData) 
             end
     end.
 
@@ -62,6 +58,38 @@ run(MapFunction) ->
 %%
 %% Local Functions.
 %%
+
+%% @doc Waits for 'map_reducing_complete' message, or additional recipe.
+%%     If receives additional recipe, start additional reduce phase.
+%%     See the documentation for protocol definition.
+%% @spec (OldPartition) -> () where
+%%     OldPartition = dict()
+%% @private
+additional_reduce_phase(OldPartition) ->
+	receive
+		{_, map_reducing_complete} ->
+			error_logger:info_msg("Map-reducing finished. Quitting.", []);
+	
+		{MasterPid, {recipe, Recipe, DeadReducerPids}} ->
+			error_logger:info_msg("Received recipe; start additional reduce phase; splitting lost data..."),
+			
+			ReducerPidsWithData = split_lost_data_among_reducers(OldPartition, DeadReducerPids, Recipe),
+			
+			ReducerPids = dict:fetch_keys(ReducerPidsWithData),
+			
+			error_logger:info_msg("Sending data to reducers ~p...",
+                                          [ReducerPids]),
+			send_data_to_reducers(ReducerPids, ReducerPidsWithData),
+			
+			error_logger:info_msg("Collecting acknowledgements from "
+                                              "reducers ~p...", [ReducerPids]),
+			collect_acknowledgements(ReducerPids),
+			
+			error_logger:info_msg("Notifying master mapper ~p is done.", [self()]),
+                    MasterPid ! {self(), map_send_finished},
+			
+			additional_reduce_phase(ReducerPidsWithData) 
+	end.
 
 %% @doc Sends all data to reducers.
 %% @spec (ReducerPids, ReducerPidsWithData) -> void() where
@@ -144,3 +172,26 @@ split_data_among_reducers(Data, Recipe) ->
                                      [{Key, Value}],
                                      ReducerPidWithData)
                 end, dict:new(), Data).
+
+%% @doc Given a recipe, creates a mapping from reducer pid to a list with data
+%%    to be sent to it, which contains only data sent to DeadReducerPids in
+%%    previous iteration.
+%% @spec (OldPartition, DeadReducerPids, Recipe) -> ReducerPidsWithData where
+%%     OldPartition = dict(),
+%%     DeadReducerPids = [pid()],
+%%     Recipe = K2 -> ReducerPid,
+%%     ReducerPidsWithData = dict()
+%% @private
+split_lost_data_among_reducers(OldPartition, DeadReducerPids, Recipe) ->
+	lists:foldl(fun (DeadReducerPid, ReducerPidWithData) -> 
+						 Data = dict:fetch(DeadReducerPid, OldPartition),
+						 lists:foldl(fun ({Key, Value}, Accumulator) -> 
+											  DestinationReducerPid = Recipe(Key),
+											  dict:update(DestinationReducerPid, 
+														  fun (OldData) ->
+																   [{Key, Value} | OldData]
+														  end,
+														  [{Key, Value}], 
+														  Accumulator)
+									 end, ReducerPidWithData, Data)
+				end, dict:new(), DeadReducerPids).
