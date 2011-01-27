@@ -22,7 +22,13 @@
 %%     V1 = LineNo = int().
 %% @throws {error, atom()} Thrown on I/O errors.
 data() ->
-    get_file_contents("../src/examples/indexing/data/tale_of_two_cities.txt").
+    Filename = "../src/examples/indexing/data/tale_of_two_cities.txt",
+    %% Filename = "../src/examples/indexing/data/tale_of_two_cities_3x.txt",
+    %% Filename = "../src/examples/indexing/data/tale_of_two_cities_10x.txt",
+    logger:info_msg("(Preparing input data) Loading data from file: ~p", [Filename]),
+    Contents = get_file_contents(Filename),
+    logger:info_msg("(Preparing input data) Data was read and prepared for map-reduce"),
+    Contents.
 
 %%
 %% Private Functions.
@@ -40,9 +46,7 @@ data() ->
 get_file_contents(FileName) ->
     case file:open(FileName, read) of
         {ok, IoDevice} -> 
-            indexing_reduce:reduce(
-              indexing_map:map(
-                get_file_contents_as_lines_with_line_no(IoDevice)));
+            get_file_contents_as_lines_with_line_no(IoDevice);
         {error, Reason} ->
             throw({error, Reason})
     end.

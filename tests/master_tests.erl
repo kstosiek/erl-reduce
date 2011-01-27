@@ -38,7 +38,7 @@ master_protocol_test() ->
                               ReduceWorkerPids,
                               InputData,
                               Recipe),
-    ExpectedResult = [{1, "a"}],
+    ExpectedResult = [{1, ["a"]}],
     ?assertEqual(ExpectedResult, ActualResult),
 
     lists:foreach(fun(Pid) -> exit(Pid, kill) end, MapWorkerPids),

@@ -22,17 +22,17 @@ start() ->
     Recipe = conf:recipe(ReduceWorkerPids),
     InputData = conf:input_data(),
     
-    error_logger:info_msg("Starting map/reduce calculation with~n"
-                              "map workers: ~p~n"
-                                  "reduce workers: ~p~n",
-                                  [MapWorkerPids, ReduceWorkerPids]),
+    logger:info_msg("Starting map/reduce calculation with~n"
+                        "map workers: ~p~n"
+                            "reduce workers: ~p~n",
+                    [MapWorkerPids, ReduceWorkerPids]),
     
     MapReduceResult = master:run(MapWorkerPids,
                                  ReduceWorkerPids,
                                  InputData,
                                  Recipe),
-    error_logger:info_msg("Map/reduce finished."),    
-    
+    logger:info_msg("Map/reduce finished."),    
+     
     MapReduceResult.
 
 

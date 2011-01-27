@@ -1,0 +1,25 @@
+# list of useful commands
+# Marcin Milewski
+# 2011-01-27
+ERL_DIR=/erl
+
+#
+alias compile="clear ; cd $ERL_DIR/src/ ; erlc *erl ; cd  $ERL_DIR/src/examples/indexing/ ; erlc *erl; cd - ; cd $ERL_DIR/tests/ ; erlc *erl ; cd -"
+alias console="clear && compile ; erl -pa examples/indexing/ "
+alias runmaster="clear && compile ; erl -sname master -pa examples/indexing/ -s main start -s init stop | tee /tmp/log.txt"
+alias runcolormaster="runmaster | ../separate.py"
+alias testall="compile && cd $ERL_DIR/tests ; erl -pa ../src/ -s all_tests run -s init stop ; cd -"
+
+# commands to run mappers
+erl -sname map1 -pa $ERL_DIR/src/examples/indexing/
+erl -sname map2 -pa $ERL_DIR/src/examples/indexing/
+
+# commands to run reducers
+erl -sname reduce1 -pa /erl/src/examples/indexing/
+erl -sname reduce2 -pa /erl/src/examples/indexing/
+
+# watching for errors
+watch -n 1 "cat /tmp/log.txt | grep -i -Pe '^=[^i]'"
+
+# running master with colorful output
+clear && runmaster | ../separate.py

@@ -13,49 +13,85 @@
 %% API Functions.
 %%
 
+
 %% @doc Represents a single map worker node. See the documentation for protocol
 %%     definition.
 %% @spec ((MapData)->IntermediateData) -> () where
 %%     MapData = [{K1,V1}],
 %%     IntermediateData = [{K2,V2}]
 run(MapFunction) ->
-    error_logger:info_msg("Map worker ~p started; waiting for map data...",
-                          [self()]),
-    receive
-        {MasterPid, {map_data, MapData}} ->
-            error_logger:info_msg("Received map data; mapping..."),
-            
-            MapResult = MapFunction(MapData),
-            MasterPid ! {self(), map_finished},
-            
-            error_logger:info_msg("Mapping finished; waiting for recipe..."),
-            
-            receive
-                {_, {recipe, Recipe}} ->
-                    error_logger:info_msg("Received recipe; splitting data..."),
-                    
-                    ReducerPidsWithData = split_data_among_reducers(MapResult,
-                                                                    Recipe),
-                    ReducerPids = dict:fetch_keys(ReducerPidsWithData),
-                    
-                    error_logger:info_msg("Sending data to reducers ~p...",
-                                          [ReducerPids]),
-                    send_data_to_reducers(ReducerPids, ReducerPidsWithData),
-                    
-                    error_logger:info_msg("Collecting acknowledgements from "
-                                              "reducers ~p...", [ReducerPids]),
-                    collect_acknowledgements(ReducerPids),
-                    
-                    error_logger:info_msg("Notifying master mapper ~p is done "
-                                              "and quitting.", [self()]),
-                    MasterPid ! {self(), map_send_finished}
-            end
-    end.
+    logger:info_msg("Map worker ~p started; waiting for map data...", [self()]),
+
+    logger:info_msg("Waiting for data to map..."),
+    MapResultList = map_data(MapFunction),
+    MapResult = lists:flatten(MapResultList),
+
+    logger:info_msg("Mapping finished; waiting for recipe..."),
+    wait_for_recipe(MapResult),
+
+    logger:info_msg("Map worker is going down."),
+    ok.
 
 
 %%
 %% Local Functions.
 %%
+
+
+%% @doc Waits for map_data message or mapping_phase_finished, because one mapper
+%%     can transform (map) data chunks multiple times (when other mapper fails).
+%% @spec ((MapData)->IntermediateData) -> (MapData) where
+%%     MapData = [{K1,V1}],
+%%     IntermediateData = [{K2,V2}]
+%% @private
+map_data_with_accumulator(MapFunction, MapResultAccumulator) ->
+    receive
+        {MasterPid, {map_data, MapData}} ->
+            logger:info_msg("Received map data; mapping..."),
+            MapResult = MapFunction(MapData),
+            MasterPid ! {self(), map_finished},
+            logger:info_msg("Mapping part of data finished, waiting for another"
+                                " part or mapping_phase_finished message"),
+            map_data_with_accumulator(MapFunction, [MapResult|MapResultAccumulator]);
+        {_, mapping_phase_finished} ->
+            logger:info_msg("Got mapping finished."),
+            MapResultAccumulator
+    end.
+
+map_data(MapFunction) ->
+    map_data_with_accumulator(MapFunction, []).
+
+
+%% @doc Waits for recipe message. When received one, sends data to reducers.
+%% @spec MapResult -> void() where
+%%      MapResult = [{K1, [V1,V2,V3,...]}]
+%% @private
+wait_for_recipe(MapResult) ->
+    receive
+        {MasterPid, {recipe, Recipe}} ->
+            logger:info_msg("Received recipe; splitting data..."),
+            ReducerPidsWithData = split_data_among_reducers(MapResult, Recipe),
+            ReducerPids = dict:fetch_keys(ReducerPidsWithData),
+
+            logger:info_msg("Sending data to reducers ~p...", [ReducerPids]),
+            send_data_to_reducers(ReducerPids, ReducerPidsWithData),
+
+            logger:info_msg("Collecting acknowledgements from "
+                                "reducers ~p...", 
+                            [ReducerPids]),
+            collect_acknowledgements(ReducerPids),
+
+            logger:info_msg("Notifying master that mapper ~p is done "
+                                "and quitting.", 
+                            [self()]),
+            MasterPid ! {self(), map_send_finished};
+
+        UnexpectedMessage ->
+            logger:warning_msg("Wrong message while waiting for recipe: ~p", 
+                               [UnexpectedMessage]),
+            wait_for_recipe(MapResult)
+    end.
+
 
 %% @doc Sends all data to reducers.
 %% @spec (ReducerPids, ReducerPidsWithData) -> void() where
@@ -64,8 +100,8 @@ run(MapFunction) ->
 %% @private
 send_data_to_reducers(ReducerPids, ReducerPidsWithData) ->
     lists:foreach(fun (ReducerPid) ->
-                           error_logger:info_msg("Sending data to reducer ~p.",
-                                                 [ReducerPid]),
+                           logger:info_msg("Sending data to reducer ~p.",
+                                           [ReducerPid]),
                            
                            ReduceData = dict:fetch(ReducerPid,
                                                    ReducerPidsWithData),
@@ -83,7 +119,7 @@ send_data_to_reducers(ReducerPids, ReducerPidsWithData) ->
 collect_acknowledgements_loop(RemainingReducerPids) ->
     case sets:size(RemainingReducerPids) of
         0 ->
-            error_logger:info_msg("Acknowledgements from reducers collected!"),
+            logger:info_msg("Acknowledgements from reducers collected!"),
             void;
         
         _ -> 
@@ -93,7 +129,7 @@ collect_acknowledgements_loop(RemainingReducerPids) ->
                                                 ReducerPid,
                                                 RemainingReducerPids),
                     
-                    error_logger:info_msg(
+                    logger:info_msg(
                       "Received acknowledgement from reducer ~p; "
                           "waiting for ~p.",
                           [ReducerPid, sets:to_list(NewRemainingReducerPids)]),
