@@ -26,10 +26,8 @@ run(ReduceFunction) ->
     
     {MasterPid, ReduceData} = collect_reduce_data(),
     ReduceResult = ReduceFunction(ReduceData),
-    
     error_logger:info_msg("Reducing finished; notifying master (~p) "
                               "and quitting", [MasterPid]),
-    
     MasterPid ! {self(), {reduce_finished, ReduceResult}}.
 
 
@@ -66,7 +64,7 @@ collect_reduce_data_loop(CollectedResultsDict) ->
         {MasterPid, start_reducing} ->
             error_logger:info_msg("Collected reduce data; received start "
                                       "signal from master (~p).",
-                                      [MasterPid]),
+                                  [MasterPid]),
             
             {MasterPid, dict:to_list(CollectedResultsDict)}
     end.
