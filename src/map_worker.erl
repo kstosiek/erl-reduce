@@ -124,7 +124,7 @@ split_data_among_reducers(Data, Recipe) ->
                          DestinationReducerPid = Recipe(Key),
                          dict:update(DestinationReducerPid,
                                      fun (OldData) ->
-                                              [{Key, Value} | OldData]
+                                              [{Key, [Value]} | OldData]
                                      end,
                                      [{Key, Value}],
                                      ReducerPidWithData)
