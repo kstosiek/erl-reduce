@@ -25,12 +25,9 @@ run(ReduceFunction) ->
                               "data...", [self()]),
     
     {MasterPid, ReduceData} = collect_reduce_data(),
-    io:format("Collected reduce data; reducing~n"),
     ReduceResult = ReduceFunction(ReduceData),
-    io:format("Reduced!~n"),
     error_logger:info_msg("Reducing finished; notifying master (~p) "
                               "and quitting", [MasterPid]),
-    io:format("Sending reduce result to master~n"),
     MasterPid ! {self(), {reduce_finished, ReduceResult}}.
 
 
