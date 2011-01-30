@@ -40,14 +40,16 @@ reduce_worker_successful_computation_test() ->
     ReduceWorkerPid =
         spawn(reduce_worker, run, 
               [fun(DataToReduce) ->
-                       lists:map(fun ({K,V}) ->  {K, lists:sum(V)}  end,
+                       lists:map(fun({K,V}) ->  {K, lists:sum(V)}  end,
                                  DataToReduce)
                end]),
     % send data to reducer.
+    io:format("Sending data to reducer"),
     lists:foreach(fun(Data) -> 
                           ReduceWorkerPid ! {self(), {reduce_data, Data}}
                   end, 
                   ReduceData),
+    io:format("Waiting for ack messages"),
     % receive ack messages.
     lists:foreach(fun(_) -> 
                           receive
@@ -55,8 +57,10 @@ reduce_worker_successful_computation_test() ->
                           end
                   end,
                   ReduceData),
+    io:format("Signalling to start reducing"),
     % start reducing
     ReduceWorkerPid ! {self(), start_reducing},
+    io:format("Waiting for reduce-finished"),
     receive
         {_, {reduce_finished, ActualResult}} ->
             SortedResult = lists:sort(fun({K1,_}, {K2,_}) ->
