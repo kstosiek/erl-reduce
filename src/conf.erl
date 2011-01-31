@@ -50,7 +50,7 @@ input_data() ->
 %%     depends on implementation, obviously.
 %% @spec () -> [string()].
 map_worker_nodes() ->
-    [map1@yennefer].
+    [map1@yennefer, map2@yennefer].
 
 
 %% @doc List of nodes participating in the map/reduce computation

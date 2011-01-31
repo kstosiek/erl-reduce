@@ -21,18 +21,24 @@ start() ->
                                             conf:reduce_worker_nodes()),
     Recipe = conf:recipe(ReduceWorkerPids),
     InputData = conf:input_data(),
-    
+
     error_logger:info_msg("Starting map/reduce calculation with~n"
                               "map workers: ~p~n"
                                   "reduce workers: ~p~n",
-                                  [MapWorkerPids, ReduceWorkerPids]),
-    
-    MapReduceResult = master:run(MapWorkerPids,
-                                 ReduceWorkerPids,
-                                 InputData,
-                                 Recipe),
-    error_logger:info_msg("Map/reduce finished."),    
-    
+                          [MapWorkerPids, ReduceWorkerPids]),
+    MasterPid = spawn(master, run, [self(),
+                                    MapWorkerPids,
+                                    ReduceWorkerPids,
+                                    InputData,
+                                    Recipe]),
+
+    error_logger:info_msg("Waiting for map/reduce result."),
+    receive
+        {MasterPid, {map_reduce_result, MapReduceResult}} ->
+            MapReduceResult
+    end,
+
+    error_logger:info_msg("Map/reduce finished."),
     MapReduceResult.
 
 

@@ -1,0 +1,23 @@
+# list of useful commands
+# Marcin Milewski
+# 2011-01-27
+ERL_DIR=/erl
+
+#
+alias compile='clear && cd $ERL_DIR ; erlc -o ebin `find . -iname "*erl"` ; cd -'
+alias console='clear && compile ; cd $ERL_DIR ; erl -sname master; cd -'
+alias runmaster='clear && compile ; cd $ERL_DIR/ebin ; erl -sname master -s main start -s init stop | tee /tmp/log.txt'
+alias runcolormaster='runmaster | ../separate.py'
+alias testall='compile && cd $ERL_DIR ; erl -pa ebin/ -s all_tests run -s init stop ; cd -'
+alias testone='cd $ERL_DIR ; rm -f $ERL_DIR/ebin/*test*beam ; erlc tests/all_tests.erl tests/master_tests.erl ; cd - && cd $ERL_DIR ; erl -pa ebin/ -s all_tests run -s init stop ; cd -'
+
+# commands to run mappers (first do: cd $ERL_DIR/ebin )
+erl -sname map1
+erl -sname map2
+
+# commands to run reducers (first do: cd $ERL_DIR/ebin )
+erl -sname reduce1
+erl -sname reduce2
+
+# watching for errors
+watch -n 1 "cat /tmp/log.txt | grep -i -Pe '^=[^i]'"
