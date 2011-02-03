@@ -38,11 +38,40 @@ master_protocol_test() ->
                               ReduceWorkerPids,
                               InputData,
                               Recipe),
-    ExpectedResult = [{1, "a"}],
+    ExpectedResult = [{1, ["a"]}],
     ?assertEqual(ExpectedResult, ActualResult),
 
     lists:foreach(fun(Pid) -> exit(Pid, kill) end, MapWorkerPids),
     lists:foreach(fun(Pid) -> exit(Pid, kill) end, ReduceWorkerPids).
+
+% tests situation when one reduce worker crashes.
+master_reduce_worker_fault_tolerance_test() ->
+	MapWorkerPids = [spawn(map_worker, run,
+						   [fun(MapData) -> MapData end])],
+	Reducer1 = spawn(reduce_worker, run, [fun(ReduceData) -> ReduceData end]),
+	Reducer2 = spawn(reduce_worker, run, [fun(ReduceData) -> ReduceData end]),
+	ReduceWorkerPids = [Reducer1, Reducer2],
+	InputData = [{"a", 1}, {"b", 2}],
+	Recipe = fun (Key) -> 
+					  if
+						  Key == "a" ->
+							  Reducer1;
+						  true -> Reducer2
+					  end
+			 end,
+	ExpectedResult = [{"a", [1]}, {"b", [2]}],
+	
+	% exit(Reducer1, kill),
+	
+	ActualResult = master:run(MapWorkerPids,
+                              ReduceWorkerPids,
+                              InputData,
+                              Recipe),
+    ?assertEqual(lists:sort(ExpectedResult), lists:sort(ActualResult)),
+	
+    lists:foreach(fun(Pid) -> exit(Pid, kill) end, MapWorkerPids),
+	exit(Reducer2, kill).
+	
 
 %% % This is a large test.
 %% map_phase_successful_computation_test() ->
