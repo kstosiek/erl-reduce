@@ -44,7 +44,6 @@ master_protocol_test() ->
     lists:foreach(fun(Pid) -> exit(Pid, kill) end, MapWorkerPids),
     lists:foreach(fun(Pid) -> exit(Pid, kill) end, ReduceWorkerPids).
 
-
 %% % This is a large test.
 %% map_phase_successful_computation_test() ->
 %%     MapData = [{1,"a"}],

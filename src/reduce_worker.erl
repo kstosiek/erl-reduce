@@ -64,7 +64,7 @@ collect_reduce_data_loop(CollectedResultsDict) ->
             
             NewCollectedResults = 
                 lists:foldl(fun({Key, Value}, Dict) ->
-                                    dict:append_list(Key, Value, Dict)
+                                    dict:append_list(Key, [Value], Dict)
                             end, 
                             CollectedResultsDict, ReduceData),
             

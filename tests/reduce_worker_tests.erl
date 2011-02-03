@@ -13,7 +13,7 @@
 
 % collect_reduce_data test
 collect_reduce_data_test() ->
-	ReduceData = [{1,["a"]}],
+	ReduceData = [{1,"a"}],
     ExpectedResult = [{1, ["a"]}],
 	MyPid = self(),
 	spawn(fun () ->
@@ -28,7 +28,7 @@ collect_reduce_data_test() ->
 
 % Simple reduce_worker protocol test
 reduce_worker_protocol_test() ->
-    ReduceData = [{1,["a"]}],
+    ReduceData = [{1,"a"}],
     ExpectedResult = [{1, "a"}],
     ReduceWorkerPid = spawn(reduce_worker, run, 
                             [fun([{K,V}]) -> [{K, lists:concat(V)}] end]),
@@ -48,9 +48,9 @@ reduce_worker_protocol_test() ->
 reduce_worker_successful_computation_test() ->
     ReduceData =
         [
-         [{"a", [1,2]}, {"b", [4]}, {"c", [5]}],
-         [{"b", [3,2]}, {"c", [3]}, {"d", [12,12]}],
-         [{"c", [2]}, {"d", [2,4]}]
+         [{"a", 1}, {"a", 2}, {"b", 4}, {"c", 5}],
+         [{"b", 3}, {"b", 2}, {"c", 3}, {"d", 12}, {"d", 12}],
+         [{"c", 2}, {"d", 2}, {"d", 4}]
         ],
     ExpectedResult = [{"a", 3}, {"b", 9}, {"c", 10}, {"d", 30}],
     ReduceWorkerPid =
