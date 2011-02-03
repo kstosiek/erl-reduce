@@ -27,7 +27,8 @@ map_worker_successful_computation_test() ->
     end,
     receive
         {_, map_send_finished} ->
-            success
+            MapWorkerPid ! {self(), map_reducing_complete}
     end,
+	% TODO: map worker is killed, before he receives map_reducing_complete message, and quits.
     exit(MapWorkerPid, kill).
 

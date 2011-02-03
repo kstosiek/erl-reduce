@@ -79,7 +79,6 @@ partition_map_data(Data, Chunks) ->
 
 
 %% @doc Sends partitioned data to map workers and collects results.
-%%    TODO: fault tolerance extention protocol implementation.
 %% @spec (MapData, MapWorkerPids, ReduceWorkerPids, Recipe) -> State where
 %%     MapData = [{K1,V1}],
 %%     MapWorkerPids = [pid()],

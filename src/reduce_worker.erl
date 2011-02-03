@@ -8,7 +8,8 @@
 %%
 %% Exported Functions.
 %%
--export([run/1]).
+-export([run/1,
+		 collect_reduce_data/0]). % exported for testing purposes
 
 
 %%
@@ -63,7 +64,7 @@ collect_reduce_data_loop(CollectedResultsDict) ->
             
             NewCollectedResults = 
                 lists:foldl(fun({Key, Value}, Dict) ->
-                                    dict:append_list(Key, [Value], Dict)
+                                    dict:append_list(Key, Value, Dict)
                             end, 
                             CollectedResultsDict, ReduceData),
             

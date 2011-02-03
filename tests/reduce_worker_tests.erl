@@ -11,6 +11,21 @@
 %% API Functions
 %%
 
+% collect_reduce_data test
+collect_reduce_data_test() ->
+	ReduceData = [{1,["a"]}],
+    ExpectedResult = [{1, ["a"]}],
+	MyPid = self(),
+	spawn(fun () ->
+				   MyPid ! {self(), {reduce_data, ReduceData}},
+				   receive
+					   {_, reduce_data_acknowledged} ->
+						   MyPid ! {self(), start_reducing}
+				   end
+		  end),
+	{data_collected, _, ActualResult} = reduce_worker:collect_reduce_data(),
+	?assertEqual(ExpectedResult, ActualResult).
+
 % Simple reduce_worker protocol test
 reduce_worker_protocol_test() ->
     ReduceData = [{1,["a"]}],
@@ -23,7 +38,8 @@ reduce_worker_protocol_test() ->
             ReduceWorkerPid ! {self(), start_reducing},
             receive
                 {_, {reduce_finished, ActualResult}} ->
-                    ?assertEqual(ExpectedResult, ActualResult)
+                    ?assertEqual(ExpectedResult, ActualResult),
+					ReduceWorkerPid ! {self(), map_reducing_complete}
             end
     end.
 
@@ -62,5 +78,6 @@ reduce_worker_successful_computation_test() ->
             SortedResult = lists:sort(fun({K1,_}, {K2,_}) ->
                                               K1 < K2 end,
                                       ActualResult),
-            ?assertEqual(ExpectedResult, SortedResult)
+            ?assertEqual(ExpectedResult, SortedResult),
+			ReduceWorkerPid ! {self(), map_reducing_complete}
     end.

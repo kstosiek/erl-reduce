@@ -184,7 +184,11 @@ split_data_among_reducers(Data, Recipe) ->
 %% @private
 split_lost_data_among_reducers(OldPartition, DeadReducerPids, Recipe) ->
 	lists:foldl(fun (DeadReducerPid, ReducerPidWithData) -> 
-						 Data = dict:fetch(DeadReducerPid, OldPartition),
+						 Data =
+							 case dict:is_key(DeadReducerPid, OldPartition) of
+								 true -> dict:fetch(DeadReducerPid, OldPartition);
+								 false -> []
+							 end,
 						 lists:foldl(fun ({Key, Value}, Accumulator) -> 
 											  DestinationReducerPid = Recipe(Key),
 											  dict:update(DestinationReducerPid, 
