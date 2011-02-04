@@ -38,3 +38,6 @@ karol@yennefer> erl -sname master
 3. W konsoli erlang wpisujemy main:start() i cieszymy się wynikami obliczenia.
 
 
+Zależności projektu:
+Do testowania potrzebny jest moduł eunit, który można znaleźć m.in. tutaj:
+http://svn.process-one.net/contribs/trunk/eunit/

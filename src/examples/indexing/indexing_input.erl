@@ -22,7 +22,13 @@
 %%     V1 = LineNo = int().
 %% @throws {error, atom()} Thrown on I/O errors.
 data() ->
-    get_file_contents("../src/examples/indexing/data/tale_of_two_cities.txt").
+    Filename = "../src/examples/indexing/data/tale_of_two_cities.txt",
+    %% Filename = "../src/examples/indexing/data/tale_of_two_cities_3x.txt",
+    %% Filename = "../src/examples/indexing/data/tale_of_two_cities_10x.txt",
+    error_logger:info_msg("(Preparing input data) Loading data from file: ~p", [Filename]),
+    Contents = get_file_contents(Filename),
+    error_logger:info_msg("(Preparing input data) Data was read and prepared for map-reduce"),
+    Contents.
 
 %%
 %% Private Functions.

@@ -19,6 +19,7 @@ map_worker_successful_computation_test() ->
     MapWorkerPid ! {self(), {map_data, MapData}},
     receive
         {_, map_finished} ->
+            MapWorkerPid ! {self(), mapping_phase_finished},
             MapWorkerPid ! {self(), {recipe, Recipe}}
     end,
     receive

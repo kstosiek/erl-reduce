@@ -56,7 +56,7 @@ reduce_worker_successful_computation_test() ->
     ReduceWorkerPid =
         spawn(reduce_worker, run, 
               [fun(DataToReduce) ->
-                       lists:map(fun ({K,V}) ->  {K, lists:sum(V)}  end,
+                       lists:map(fun({K,V}) ->  {K, lists:sum(V)}  end,
                                  DataToReduce)
                end]),
     % send data to reducer.
