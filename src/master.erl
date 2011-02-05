@@ -34,8 +34,8 @@ run(MainWorkerPid, MapWorkerPids, ReduceWorkerPids, InputData, Recipe)
        length(ReduceWorkerPids) > 0 ->
     error_logger:info_msg("Starting master (~p).", [self()]),
     State =	execute_map_phase(InputData, MapWorkerPids, ReduceWorkerPids, Recipe),
-    MapReduceResult = execute_reduce_phase(ReduceWorkerPids),
-    MainWorkerPid ! {map_reduce_result, MapReduceResult},
+    MapReduceResult = execute_reduce_phase(State),
+    MainWorkerPid ! {self(), {map_reduce_result, MapReduceResult}},
     map_reducing_complete(MapWorkerPids, ReduceWorkerPids),
     MapReduceResult.
 
@@ -194,9 +194,9 @@ execute_map_phase(MapData, MapWorkerPids, ReduceWorkerPids, Recipe) ->
     
     % Collect map_finished messages
     error_logger:info_msg("Collecting map_finished messages..."),
-    FinishedPids = collect_map_finished_pids(PidDatas),
+    FinishedMapperPids = collect_map_finished_pids(PidDatas),
     error_logger:info_msg("Collected map_finished messages ~p out of ~p.",
-                          [length(FinishedPids), length(MapWorkerPids)]),
+                          [length(FinishedMapperPids), length(MapWorkerPids)]),
     
 	% Create monitors for reducres
 	error_logger:info_msg(
@@ -205,24 +205,26 @@ execute_map_phase(MapData, MapWorkerPids, ReduceWorkerPids, Recipe) ->
 	
 	spawn(monitors, monitor_reduce_workers, [self(), ReduceWorkerPids]),
     
-	% TODO: create state in run function.
-	State = #master_state{alive_mapper_pids = MapWorkerPids,
-						  alive_reducer_pids = ReduceWorkerPids},
+	
     error_logger:info_msg("Sending mapping_phase_finished to all mappers"),
-    UniqueFinishedPids = lists:usort(FinishedPids),
+    UniqueFinishedMapperPids = lists:usort(FinishedMapperPids),
     lists:foreach(fun (MapperPid) ->
                            MapperPid ! {self(), mapping_phase_finished}
-                  end, UniqueFinishedPids),
+                  end, UniqueFinishedMapperPids),
     
+	% TODO: create state in run function.
+	State = #master_state{alive_mapper_pids = UniqueFinishedMapperPids,
+						  alive_reducer_pids = ReduceWorkerPids},
+	
     error_logger:info_msg("Sending recipies to mappers"),
     lists:foreach(fun (MapperPid) ->
                            MapperPid ! {self(), {recipe, Recipe}}
-                  end, UniqueFinishedPids),
+                  end, UniqueFinishedMapperPids),
     error_logger:info_msg("Receipes sent to all map workers"),
 	
     % Collect map_send_finished messages.
     error_logger:info_msg("Collecting map_send_finished messages..."),
-    ResultState = collect_map_send_finished(MapWorkerPids, State),
+    ResultState = collect_map_send_finished(UniqueFinishedMapperPids, State),
     
     error_logger:info_msg("Map phase finished.", []),
 	ResultState.
@@ -239,6 +241,8 @@ collect_map_send_finished(MapWorkerPids, State) ->
 	receive
 		{MapperPid, map_send_finished} ->
 			NewMapWorkerPids = lists:delete(MapperPid, MapWorkerPids),
+			error_logger:info_msg("Received map_send_finishd from ~p, waiting for ~p mappers.",
+								  [MapperPid, length(NewMapWorkerPids)]),
 			collect_map_send_finished(NewMapWorkerPids, State);
 		{ReducerPid, reduce_worker_down} ->
 			% inform mappers about dead reducer.
